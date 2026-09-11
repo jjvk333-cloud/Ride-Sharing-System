@@ -1,18 +1,18 @@
 package com.velto.pattern.strategy;
 
+import com.velto.pattern.singleton.AppConfigSingleton;
 import org.springframework.stereotype.Component;
 
 /**
- * Concrete Strategy: Peak surge pricing applying a 1.5x multiplier during high demand.
+ * Concrete Strategy: Peak surge pricing dynamically fetching the multiplier from AppConfigSingleton.
  */
 @Component
 public class PeakPricingStrategy implements PricingStrategy {
 
-    private static final double SURGE_MULTIPLIER = 1.5;
-
     @Override
     public String getStrategyName() {
-        return "Peak Surge Pricing (1.5x)";
+        double currentMultiplier = AppConfigSingleton.getInstance().getSurgeMultiplier();
+        return "Peak Surge Pricing (" + currentMultiplier + "x)";
     }
 
     @Override
@@ -25,6 +25,7 @@ public class PeakPricingStrategy implements PricingStrategy {
         if (seats <= 0) {
             throw new IllegalArgumentException("Seats must be at least 1");
         }
-        return Math.round((basePrice * SURGE_MULTIPLIER * seats) * 100.0) / 100.0;
+        double surgeMultiplier = AppConfigSingleton.getInstance().getSurgeMultiplier();
+        return Math.round((basePrice * surgeMultiplier * seats) * 100.0) / 100.0;
     }
 }

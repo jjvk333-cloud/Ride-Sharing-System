@@ -1,0 +1,61 @@
+{
+  "info": {
+    "_postman_id": "velto-config-collection-008",
+    "name": "Velto - Config API (Singleton Pattern)",
+    "description": "Postman Collection for Velto AppConfigSingleton Central Runtime Configuration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Get Current Config",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/config",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "config"]
+        }
+      }
+    },
+    {
+      "name": "2. Update Config (Admin)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseFare\": 60.0,\n  \"perKmRate\": 14.0,\n  \"surgeMultiplier\": 1.75,\n  \"maintenanceMode\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/config",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "config"]
+        }
+      }
+    },
+    {
+      "name": "3. Reset Config to Defaults",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/config/reset",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "config", "reset"]
+        }
+      }
+    }
+  ]
+}
