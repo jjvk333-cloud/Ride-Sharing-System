@@ -4,6 +4,8 @@ import com.velto.dto.CreateRideRequest;
 import com.velto.exception.RideNotFoundException;
 import com.velto.model.Ride;
 import com.velto.model.RideStatus;
+import com.velto.pattern.observer.RideEvent;
+import com.velto.pattern.observer.RideEventSubject;
 import com.velto.pattern.state.RideContext;
 import com.velto.repository.RideRepository;
 import org.springframework.stereotype.Service;
@@ -14,9 +16,11 @@ import java.util.List;
 public class RideServiceImpl implements RideService {
 
     private final RideRepository rideRepository;
+    private final RideEventSubject rideEventSubject;
 
-    public RideServiceImpl(RideRepository rideRepository) {
+    public RideServiceImpl(RideRepository rideRepository, RideEventSubject rideEventSubject) {
         this.rideRepository = rideRepository;
+        this.rideEventSubject = rideEventSubject;
     }
 
     @Override
@@ -90,12 +94,19 @@ public class RideServiceImpl implements RideService {
     @Override
     public Ride updateRideStatus(String rideId, RideStatus targetStatus) {
         Ride ride = getRideById(rideId);
+        RideStatus previousStatus = ride.getStatus();
 
-        // Employ GoF State Pattern via RideContext
+        // 1. Employ State Pattern for validation and transition
         RideContext context = RideContext.fromRide(ride);
         context.transitionTo(targetStatus);
 
-        return rideRepository.save(context.getRide());
+        Ride savedRide = rideRepository.save(context.getRide());
+
+        // 2. Employ Observer Pattern to broadcast notification event to all registered observers
+        RideEvent event = new RideEvent(savedRide, previousStatus, targetStatus, "Ride status changed to " + targetStatus);
+        rideEventSubject.notifyObservers(event);
+
+        return savedRide;
     }
 
     @Override

@@ -1,0 +1,36 @@
+{
+	"info": {
+		"_postman_id": "velto-notifications-apis",
+		"name": "VELTO - Notifications APIs",
+		"description": "User notification endpoints driven by Observer Pattern for VELTO Ride Sharing System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get User Notifications",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "http://localhost:8080/api/notifications/REPLACE_WITH_USER_ID",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "notifications", "REPLACE_WITH_USER_ID"]
+				}
+			}
+		},
+		{
+			"name": "Mark Notification as Read",
+			"request": {
+				"method": "PATCH",
+				"url": {
+					"raw": "http://localhost:8080/api/notifications/REPLACE_WITH_NOTIFICATION_ID/read",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "notifications", "REPLACE_WITH_NOTIFICATION_ID", "read"]
+				}
+			}
+		}
+	]
+}
