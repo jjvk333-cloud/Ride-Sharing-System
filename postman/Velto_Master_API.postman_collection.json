@@ -1,0 +1,282 @@
+{
+  "info": {
+    "_postman_id": "velto-master-collection-009",
+    "name": "Velto - Complete Master API Suite",
+    "description": "Full REST API collection covering all 8 Design Patterns and complete domain operations for Velto Ride Sharing System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication (Factory Pattern)",
+      "item": [
+        {
+          "name": "Register Passenger",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Patel\",\n  \"email\": \"priya.passenger@velto.com\",\n  \"password\": \"Passenger@123\",\n  \"phone\": \"9876543210\",\n  \"role\": \"PASSENGER\"\n}"
+            },
+            "url": "http://localhost:8080/api/auth/register"
+          }
+        },
+        {
+          "name": "Register Driver",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajesh Kumar\",\n  \"email\": \"rajesh.driver@velto.com\",\n  \"password\": \"Driver@123\",\n  \"phone\": \"9876543211\",\n  \"role\": \"DRIVER\",\n  \"vehicleNumber\": \"MH-12-AB-1234\",\n  \"licenseNumber\": \"DL-PUN-2022-0098\"\n}"
+            },
+            "url": "http://localhost:8080/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"priya.passenger@velto.com\",\n  \"password\": \"Passenger@123\"\n}"
+            },
+            "url": "http://localhost:8080/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/users"
+          }
+        },
+        {
+          "name": "Get Users by Role (DRIVER)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/users?role=DRIVER"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Rides (Builder Pattern)",
+      "item": [
+        {
+          "name": "Create Ride",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverId}}\",\n  \"driverName\": \"Rajesh Kumar\",\n  \"pickup\": \"Pune Railway Station\",\n  \"destination\": \"Hinjewadi Phase 1\",\n  \"date\": \"2026-09-15\",\n  \"time\": \"09:00 AM\",\n  \"availableSeats\": 4,\n  \"price\": 250.0\n}"
+            },
+            "url": "http://localhost:8080/api/rides"
+          }
+        },
+        {
+          "name": "Search Rides",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/rides?pickup=Pune&destination=Hinjewadi"
+          }
+        },
+        {
+          "name": "Get Ride by ID",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/rides/{{rideId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Dynamic Pricing (Strategy Pattern)",
+      "item": [
+        {
+          "name": "Calculate Standard Price",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/calculate-price?seats=2&pricingType=STANDARD"
+          }
+        },
+        {
+          "name": "Calculate Peak Surge Price",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/calculate-price?seats=2&pricingType=PEAK"
+          }
+        },
+        {
+          "name": "Calculate Shared Discount Price",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/calculate-price?seats=2&pricingType=SHARED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Ride Booking (Facade Pattern)",
+      "item": [
+        {
+          "name": "Book Ride via Facade",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{rideId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"seats\": 2,\n  \"pricingType\": \"STANDARD\"\n}"
+            },
+            "url": "http://localhost:8080/api/bookings"
+          }
+        },
+        {
+          "name": "Get Bookings by User",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/bookings/user/{{passengerId}}"
+          }
+        },
+        {
+          "name": "Cancel Booking (Restore Seats)",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/bookings/{{bookingId}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Ride Lifecycle (State Pattern)",
+      "item": [
+        {
+          "name": "Transition to CONFIRMED",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/status?status=CONFIRMED"
+          }
+        },
+        {
+          "name": "Transition to DRIVER_ASSIGNED",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/status?status=DRIVER_ASSIGNED"
+          }
+        },
+        {
+          "name": "Transition to IN_PROGRESS",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/status?status=IN_PROGRESS"
+          }
+        },
+        {
+          "name": "Transition to COMPLETED",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/rides/{{rideId}}/status?status=COMPLETED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Notifications (Observer Pattern)",
+      "item": [
+        {
+          "name": "Get User Notifications",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/notifications/{{userId}}"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/notifications/{{notificationId}}/read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Payments (Adapter Pattern)",
+      "item": [
+        {
+          "name": "Pay via UPI Adapter",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"amount\": 350.0,\n  \"paymentMethod\": \"UPI\",\n  \"upiId\": \"passenger@okaxis\"\n}"
+            },
+            "url": "http://localhost:8080/api/payments"
+          }
+        },
+        {
+          "name": "Pay via Card Adapter",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"amount\": 420.0,\n  \"paymentMethod\": \"CARD\",\n  \"cardNumber\": \"4111 2222 3333 4444\",\n  \"expiryDate\": \"12/28\",\n  \"cvv\": \"123\"\n}"
+            },
+            "url": "http://localhost:8080/api/payments"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Configuration (Singleton Pattern)",
+      "item": [
+        {
+          "name": "Get System Configuration",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/config"
+          }
+        },
+        {
+          "name": "Update Configuration (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseFare\": 60.0,\n  \"perKmRate\": 14.0,\n  \"surgeMultiplier\": 1.75\n}"
+            },
+            "url": "http://localhost:8080/api/config"
+          }
+        }
+      ]
+    }
+  ]
+}

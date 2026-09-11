@@ -36,6 +36,11 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping
+    public ResponseEntity<List<Booking>> getAllBookings() {
+        return ResponseEntity.ok(bookingRepository.findAll());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Booking> getBookingById(@PathVariable String id) {
         Booking booking = bookingRepository.findById(id)
@@ -53,5 +58,11 @@ public class BookingController {
     public ResponseEntity<List<Booking>> getBookingsByRide(@PathVariable String rideId) {
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         return ResponseEntity.ok(bookings);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Booking> cancelBooking(@PathVariable String id) {
+        Booking cancelled = rideBookingFacade.cancelBooking(id);
+        return ResponseEntity.ok(cancelled);
     }
 }

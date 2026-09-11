@@ -25,8 +25,9 @@ import org.springframework.stereotype.Component;
  * 4. Dynamic Pricing Strategy Execution
  * 5. Mock Payment Processing
  * 6. Booking Document Creation & Persistence
+ * 7. Booking Cancellation & Seat Restoration Subsystem
  *
- * Clients (Controllers/Frontend) communicate with a single simple method.
+ * Clients (Controllers/Frontend) communicate with simple single methods.
  */
 @Component
 public class RideBookingFacade {
@@ -118,5 +119,36 @@ public class RideBookingFacade {
                 savedBooking.getCreatedAt(),
                 "Ride booked and confirmed successfully!"
         );
+    }
+
+    /**
+     * Facade method coordinating booking cancellation:
+     * Restores seats to the ride, updates booking status to CANCELLED,
+     * and sets payment status to REFUNDED if applicable.
+     */
+    public Booking cancelBooking(String bookingId) {
+        log.info("RideBookingFacade: Processing cancellation for booking '{}'...", bookingId);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingException("Booking not found with ID: " + bookingId));
+
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
+            throw new BookingException("Booking is already cancelled.");
+        }
+
+        // Restore seats to the ride
+        rideRepository.findById(booking.getRideId()).ifPresent(ride -> {
+            ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeats());
+            rideRepository.save(ride);
+            log.info("Restored {} seats to ride '{}'. New available seats: {}",
+                    booking.getSeats(), ride.getId(), ride.getAvailableSeats());
+        });
+
+        // Mark cancelled
+        booking.setBookingStatus(BookingStatus.CANCELLED);
+        if (booking.getPaymentStatus() == PaymentStatus.PAID) {
+            booking.setPaymentStatus(PaymentStatus.REFUNDED);
+        }
+
+        return bookingRepository.save(booking);
     }
 }
