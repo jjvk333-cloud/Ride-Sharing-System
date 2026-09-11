@@ -1,7 +1,10 @@
 package com.velto.controller;
 
 import com.velto.dto.CreateRideRequest;
+import com.velto.dto.PriceCalculationResponse;
 import com.velto.model.Ride;
+import com.velto.pattern.strategy.PricingContext;
+import com.velto.pattern.strategy.PricingType;
 import com.velto.service.RideService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -12,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST Controller for managing ride creation, search, update, and deletion.
+ * REST Controller for managing ride creation, search, update, deletion,
+ * and dynamic pricing calculations via Strategy Pattern.
  */
 @RestController
 @RequestMapping("/api/rides")
@@ -20,9 +24,11 @@ import java.util.Map;
 public class RideController {
 
     private final RideService rideService;
+    private final PricingContext pricingContext;
 
-    public RideController(RideService rideService) {
+    public RideController(RideService rideService, PricingContext pricingContext) {
         this.rideService = rideService;
+        this.pricingContext = pricingContext;
     }
 
     @PostMapping
@@ -61,5 +67,30 @@ public class RideController {
     public ResponseEntity<Map<String, String>> deleteRide(@PathVariable String id) {
         rideService.deleteRide(id);
         return ResponseEntity.ok(Map.of("message", "Ride deleted successfully"));
+    }
+
+    /**
+     * Calculates the estimated price for a ride using the selected Strategy Pattern algorithm.
+     */
+    @GetMapping("/{id}/calculate-price")
+    public ResponseEntity<PriceCalculationResponse> calculatePrice(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "1") int seats,
+            @RequestParam(defaultValue = "STANDARD") PricingType pricingType) {
+        Ride ride = rideService.getRideById(id);
+
+        pricingContext.setStrategyByType(pricingType);
+        double finalPrice = pricingContext.calculatePrice(ride.getPrice(), seats);
+
+        PriceCalculationResponse response = new PriceCalculationResponse(
+                ride.getId(),
+                ride.getPrice(),
+                seats,
+                pricingType,
+                pricingContext.getStrategy().getStrategyName(),
+                finalPrice
+        );
+
+        return ResponseEntity.ok(response);
     }
 }
