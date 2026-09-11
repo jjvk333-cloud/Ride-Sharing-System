@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, BookingException.class, InvalidRideStateException.class})
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, BookingException.class, InvalidRideStateException.class, PaymentException.class})
     public ResponseEntity<ErrorResponse> handleClientErrors(RuntimeException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
@@ -51,7 +51,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
-    @ExceptionHandler({UserNotFoundException.class, RideNotFoundException.class})
+    @ExceptionHandler({UserNotFoundException.class, RideNotFoundException.class, ResourceNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),

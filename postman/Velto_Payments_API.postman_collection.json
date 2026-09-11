@@ -1,0 +1,98 @@
+{
+  "info": {
+    "_postman_id": "velto-payments-collection-007",
+    "name": "Velto - Payments API (Adapter Pattern)",
+    "description": "Postman Collection for Velto Ride Sharing Payments with UPI, Card, and Mock Adapters",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Process UPI Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"amount\": 350.0,\n  \"paymentMethod\": \"UPI\",\n  \"upiId\": \"passenger@okaxis\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/payments",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "payments"]
+        }
+      }
+    },
+    {
+      "name": "2. Process Card Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"amount\": 420.0,\n  \"paymentMethod\": \"CARD\",\n  \"cardNumber\": \"4111 2222 3333 4444\",\n  \"expiryDate\": \"12/28\",\n  \"cvv\": \"123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/payments",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "payments"]
+        }
+      }
+    },
+    {
+      "name": "3. Get Payment by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/payments/{{paymentId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "payments", "{{paymentId}}"]
+        }
+      }
+    },
+    {
+      "name": "4. Get Payments by Booking ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/payments/booking/{{bookingId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "payments", "booking", "{{bookingId}}"]
+        }
+      }
+    },
+    {
+      "name": "5. Get Payments by Passenger ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/payments/passenger/{{passengerId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "payments", "passenger", "{{passengerId}}"]
+        }
+      }
+    }
+  ]
+}
