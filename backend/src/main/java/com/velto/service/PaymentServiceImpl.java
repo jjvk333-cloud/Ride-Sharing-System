@@ -37,8 +37,8 @@ public class PaymentServiceImpl implements PaymentService {
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + request.getBookingId()));
 
-        if (booking.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new PaymentException("Booking " + request.getBookingId() + " has already been paid for.");
+        if (booking.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            throw new PaymentException("Booking " + request.getBookingId() + " has been cancelled and refunded.");
         }
 
         // 2. Select appropriate adapter via factory
