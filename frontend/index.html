@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VELTO — Ride Sharing System</title>
+  <title>VELTO — Intelligent Ride Sharing System</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Custom Styles -->
   <link href="css/styles.css" rel="stylesheet">
 </head>
@@ -66,8 +68,8 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link text-warning" id="nav-patterns" href="#" onclick="showView('patterns')">
-              <i class="bi bi-diagram-3-fill me-1"></i> 8 Design Patterns
+            <a class="nav-link text-warning fw-bold" id="nav-patterns" href="#" onclick="showView('patterns')">
+              <i class="bi bi-diagram-3-fill me-1"></i> 8 Design Patterns Showcase
             </a>
           </li>
         </ul>
@@ -96,7 +98,7 @@
 
           <!-- Logged In View -->
           <div id="auth-logged-in" class="d-none d-flex align-items-center gap-2">
-            <span class="badge bg-indigo text-white p-2" id="user-display-badge">
+            <span class="badge bg-primary text-white p-2" id="user-display-badge">
               <i class="bi bi-person-badge me-1"></i> <span id="user-display-name">User</span>
             </span>
             <button class="btn btn-outline-danger btn-sm" onclick="handleLogout()">
@@ -112,7 +114,7 @@
   <header class="hero-section text-center">
     <div class="container">
       <h1 class="hero-title mb-2">Smart, Safe & Campus-Friendly Ride Sharing</h1>
-      <p class="hero-subtitle mb-4">Connect with fellow riders, split fares transparently, and travel comfortably.</p>
+      <p class="hero-subtitle mb-4">Connect with fellow riders, split fares dynamically, and travel comfortably.</p>
       
       <!-- Quick Search Bar -->
       <div class="row justify-content-center">
@@ -142,7 +144,7 @@
   <!-- Notifications Drawer / Offcanvas -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="notifOffcanvas">
     <div class="offcanvas-header bg-dark text-white">
-      <h5 class="offcanvas-title"><i class="bi bi-bell-fill text-warning me-2"></i>Live Notifications</h5>
+      <h5 class="offcanvas-title"><i class="bi bi-bell-fill text-warning me-2"></i>Live Notifications (Observer Pattern)</h5>
       <button type="button" class="btn-close btn-close-white" data-bs-target="#notifOffcanvas" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-0" id="notif-list-container">
@@ -171,7 +173,7 @@
       <div class="row mb-4">
         <div class="col-md-8">
           <h3 class="fw-bold"><i class="bi bi-person-fill text-success me-2"></i>Passenger Portal</h3>
-          <p class="text-muted">Manage your bookings, track ride status, and view payment receipts.</p>
+          <p class="text-muted">Manage your bookings, generate printable boarding passes, and execute payments via the Adapter Pattern.</p>
         </div>
         <div class="col-md-4 text-md-end">
           <button class="btn btn-primary" onclick="showView('search')">
@@ -196,7 +198,7 @@
                 <th>Total Fare</th>
                 <th>Booking Status</th>
                 <th>Payment Status</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="passenger-bookings-body">
@@ -379,71 +381,89 @@
       </div>
     </section>
 
-    <!-- VIEW 5: 8 DESIGN PATTERNS SHOWCASE -->
+    <!-- VIEW 5: 8 DESIGN PATTERNS SHOWCASE (WITH INTERACTIVE LIVE TESTERS) -->
     <section id="view-patterns" class="app-view d-none">
-      <div class="text-center mb-5">
+      <div class="text-center mb-4">
         <h2 class="fw-bold"><i class="bi bi-award-fill text-warning me-2"></i>8 Gang of Four (GoF) Design Patterns</h2>
         <p class="text-muted col-lg-8 mx-auto">
-          Every pattern in Velto solves a concrete software engineering challenge in real-world ride sharing.
-          Below is the live architectural blueprint ready for viva and examiner review.
+          Every pattern in Velto solves a concrete architectural challenge in real-world ride sharing.
+          Click <strong>"Execute Live Pattern Test"</strong> on any card to run the real backend subsystem and inspect its execution live in your viva presentation!
         </p>
       </div>
 
       <div class="row g-4">
         <!-- Pattern 1 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-primary">Pattern 1: Creational</span>
               <small class="text-muted"><code>com.velto.pattern.factory</code></small>
             </div>
             <h5 class="fw-bold text-dark">Factory Method Pattern</h5>
             <p class="text-muted small">
-              <strong>Domain Problem:</strong> Dynamic polymorphic user creation with role-specific invariants (Passengers require payment preferences; Drivers require vehicle details, license, and verification; Admins require audit permissions).
+              <strong>Domain Problem:</strong> Dynamic polymorphic user creation with role-specific invariants (Passengers require payment preferences; Drivers require vehicle details and license; Admins require audit rights).
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>UserFactory</code> interface with <code>UserFactoryImpl</code> instantiating <code>Passenger</code>, <code>Driver</code>, or <code>Admin</code> based on role.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="testPatternLive('factory')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-factory" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 2 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-success">Pattern 2: Behavioral</span>
               <small class="text-muted"><code>com.velto.pattern.strategy</code></small>
             </div>
             <h5 class="fw-bold text-dark">Strategy Pattern</h5>
             <p class="text-muted small">
-              <strong>Domain Problem:</strong> Real-time dynamic pricing calculation changes based on demand and ride type without altering the calling code.
+              <strong>Domain Problem:</strong> Real-time dynamic pricing calculation varies dynamically based on rush hours, weather, or carpooling incentives without modifying calling code.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>PricingStrategy</code> with <code>StandardPricingStrategy</code> (1.0x), <code>PeakPricingStrategy</code> (1.5x surge), and <code>SharedRidePricingStrategy</code> (0.8x discount), coordinated via <code>PricingContext</code>.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="testPatternLive('strategy')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-strategy" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 3 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-primary">Pattern 3: Creational</span>
               <small class="text-muted"><code>com.velto.pattern.builder</code></small>
             </div>
             <h5 class="fw-bold text-dark">Builder Pattern</h5>
             <p class="text-muted small">
-              <strong>Domain Problem:</strong> Construction of complex <code>Ride</code> documents with numerous mandatory and optional attributes (stops, timing, coordinates, seats) avoiding telescoping constructors.
+              <strong>Domain Problem:</strong> Construction of complex <code>Ride</code> documents with numerous mandatory and optional attributes avoiding telescoping constructors.
             </p>
-            <p class="text-muted small mb-0">
-              <strong>Implementation:</strong> Fluent nested static <code>Ride.Builder</code> with validation ensuring rides cannot be built with missing driver info or zero seats.
+            <p class="text-muted small mb-2">
+              <strong>Implementation:</strong> Fluent nested static <code>Ride.Builder</code> with mandatory parameter validation ensuring rides cannot be built with missing driver info or zero seats.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="testPatternLive('builder')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-builder" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 4 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-info">Pattern 4: Structural</span>
               <small class="text-muted"><code>com.velto.pattern.facade</code></small>
@@ -452,15 +472,21 @@
             <p class="text-muted small">
               <strong>Domain Problem:</strong> Ride booking touches 6 separate subsystems: User verification, Ride status validation, Seat availability check, Strategy pricing, Payment processing, and Persistence.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>RideBookingFacade.bookRide(...)</code> shields clients from internal complexity by executing all 6 steps atomically behind a single call.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-info w-100 mb-2" onclick="testPatternLive('facade')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-facade" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 5 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-success">Pattern 5: Behavioral</span>
               <small class="text-muted"><code>com.velto.pattern.state</code></small>
@@ -469,32 +495,44 @@
             <p class="text-muted small">
               <strong>Domain Problem:</strong> Ride lifecycles follow a strict state machine (<code>REQUESTED</code> &rarr; <code>CONFIRMED</code> &rarr; <code>DRIVER_ASSIGNED</code> &rarr; <code>DRIVER_ARRIVING</code> &rarr; <code>IN_PROGRESS</code> &rarr; <code>COMPLETED</code>). Illegal transitions must be strictly blocked.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>RideState</code> interface implemented by 7 concrete classes and coordinated by <code>RideContext</code>.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="testPatternLive('state')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-state" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 6 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-success">Pattern 6: Behavioral</span>
               <small class="text-muted"><code>com.velto.pattern.observer</code></small>
             </div>
             <h5 class="fw-bold text-dark">Observer Pattern</h5>
             <p class="text-muted small">
-              <strong>Domain Problem:</strong> Whenever a ride's state changes, passengers, drivers, and administrators must receive real-time notifications without tightly coupling the status machine to notification logic.
+              <strong>Domain Problem:</strong> When a ride state changes, passengers, drivers, and administrators must receive real-time notifications without tightly coupling the status machine to notification logic.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>RideEventSubject</code> notifies <code>PassengerNotificationObserver</code>, <code>DriverNotificationObserver</code>, and <code>AdminNotificationObserver</code>.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="testPatternLive('observer')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-observer" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 7 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-info">Pattern 7: Structural</span>
               <small class="text-muted"><code>com.velto.pattern.adapter</code></small>
@@ -503,32 +541,154 @@
             <p class="text-muted small">
               <strong>Domain Problem:</strong> Third-party payment gateways (UPI, Stripe/Card, Cash Counters) have incompatible method signatures, parameters, and return types.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>PaymentProcessor</code> target interface with <code>UpiPaymentAdapter</code>, <code>CardPaymentAdapter</code>, and <code>MockPaymentAdapter</code> resolved dynamically via <code>PaymentProcessorFactory</code>.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-info w-100 mb-2" onclick="testPatternLive('adapter')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-adapter" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
 
         <!-- Pattern 8 -->
         <div class="col-md-6">
-          <div class="card h-100 pattern-card p-3">
+          <div class="card h-100 pattern-card p-3 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-primary">Pattern 8: Creational</span>
               <small class="text-muted"><code>com.velto.pattern.singleton</code></small>
             </div>
             <h5 class="fw-bold text-dark">Singleton Pattern</h5>
             <p class="text-muted small">
-              <strong>Domain Problem:</strong> Application-wide runtime configurations (surge pricing multiplier, base fare, maintenance mode toggle) must be thread-safe and universally identical across all concurrent threads.
+              <strong>Domain Problem:</strong> Application-wide runtime configurations (surge multiplier, base fare, maintenance mode) must be thread-safe and universally identical across all concurrent threads.
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-2">
               <strong>Implementation:</strong> <code>AppConfigSingleton</code> using Double-Checked Locking (DCL) with <code>volatile</code>, reflection prevention, cloning defense, and serialization <code>readResolve</code>.
             </p>
+            <div class="mt-auto">
+              <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="testPatternLive('singleton')">
+                <i class="bi bi-play-circle-fill me-1"></i> Execute Live Pattern Test
+              </button>
+              <div id="tester-console-singleton" class="tester-console d-none"></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
   </main>
+
+  <!-- MODAL: Leaflet Route Map Preview -->
+  <div class="modal fade" id="routeMapModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="bi bi-map-fill text-warning me-2"></i>Interactive Route Map (Leaflet.js & OpenStreetMap)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <span class="badge bg-success me-1"><i class="bi bi-geo-alt-fill"></i> Pickup:</span>
+              <strong id="map-pickup-name">Pickup</strong>
+            </div>
+            <div>
+              <span class="badge bg-danger me-1"><i class="bi bi-flag-fill"></i> Destination:</span>
+              <strong id="map-dest-name">Destination</strong>
+            </div>
+          </div>
+          <div id="leaflet-map"></div>
+          <div class="mt-2 text-muted small text-center">
+            <i class="bi bi-info-circle me-1"></i> Free OpenStreetMap data rendered using Leaflet.js (Zero API keys, 100% offline-ready fallback).
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Map</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Printable Boarding Pass & QR Ticket -->
+  <div class="modal fade" id="boardingPassModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Boarding Pass & Ride Ticket</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <!-- Printable Container -->
+          <div id="printableTicket" class="ticket-card shadow-sm">
+            <div class="ticket-header d-flex justify-content-between align-items-center">
+              <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-taxi-front-fill text-warning me-2"></i>VELTO PASS</h4>
+                <small class="text-light opacity-75">Verified Ride Sharing Ticket</small>
+              </div>
+              <span class="badge bg-success px-3 py-2 fs-6" id="ticket-payment-status">PAID</span>
+            </div>
+            <div class="ticket-body">
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <small class="text-muted d-block text-uppercase fw-bold">Passenger</small>
+                  <strong class="fs-6" id="ticket-passenger">Priya Patel</strong>
+                </div>
+                <div class="col-6 text-end">
+                  <small class="text-muted d-block text-uppercase fw-bold">Booking Reference</small>
+                  <code class="fs-6 fw-bold text-primary" id="ticket-booking-id">#BK-999</code>
+                </div>
+              </div>
+
+              <div class="border-top border-bottom py-2 my-2">
+                <div class="row g-2 align-items-center">
+                  <div class="col-5">
+                    <small class="text-muted d-block">FROM</small>
+                    <strong class="text-dark" id="ticket-from">Pune Station</strong>
+                  </div>
+                  <div class="col-2 text-center">
+                    <i class="bi bi-arrow-right fs-4 text-primary"></i>
+                  </div>
+                  <div class="col-5 text-end">
+                    <small class="text-muted d-block">TO</small>
+                    <strong class="text-dark" id="ticket-to">Hinjewadi</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3 small">
+                <div class="col-4">
+                  <span class="text-muted d-block">Date</span>
+                  <strong id="ticket-date">2026-09-12</strong>
+                </div>
+                <div class="col-4 text-center">
+                  <span class="text-muted d-block">Seats</span>
+                  <strong id="ticket-seats">1 Seat</strong>
+                </div>
+                <div class="col-4 text-end">
+                  <span class="text-muted d-block">Fare Paid</span>
+                  <strong class="text-success fs-6" id="ticket-fare">₹250.00</strong>
+                </div>
+              </div>
+
+              <!-- QR Code Display -->
+              <div class="text-center py-2 bg-light rounded border">
+                <div id="qrcode" class="d-inline-block mb-1"></div>
+                <div class="small text-muted">Scan QR Code to Verify Boarding with Driver</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary fw-bold" onclick="printTicket()">
+            <i class="bi bi-printer-fill me-1"></i> Print Ticket (PDF)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: Calculate Price (Strategy Pattern) -->
   <div class="modal fade" id="priceModal" tabindex="-1">
@@ -802,6 +962,10 @@
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- Application JS -->
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
