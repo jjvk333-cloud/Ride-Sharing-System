@@ -29,33 +29,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, BookingException.class, InvalidRideStateException.class})
+    public ResponseEntity<ErrorResponse> handleClientErrors(RuntimeException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    @ExceptionHandler(BookingException.class)
-    public ResponseEntity<ErrorResponse> handleBookingException(BookingException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Booking Failed",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Illegal State",
                 ex.getMessage(),
                 request.getRequestURI()
         );

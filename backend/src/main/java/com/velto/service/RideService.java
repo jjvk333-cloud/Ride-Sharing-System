@@ -2,6 +2,7 @@ package com.velto.service;
 
 import com.velto.dto.CreateRideRequest;
 import com.velto.model.Ride;
+import com.velto.model.RideStatus;
 
 import java.util.List;
 
@@ -18,6 +19,8 @@ public interface RideService {
     List<Ride> getRidesByDriver(String driverId);
 
     Ride updateRide(String rideId, CreateRideRequest request);
+
+    Ride updateRideStatus(String rideId, RideStatus targetStatus);
 
     void deleteRide(String rideId);
 }

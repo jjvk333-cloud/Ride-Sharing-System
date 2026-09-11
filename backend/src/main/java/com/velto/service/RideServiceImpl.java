@@ -4,14 +4,12 @@ import com.velto.dto.CreateRideRequest;
 import com.velto.exception.RideNotFoundException;
 import com.velto.model.Ride;
 import com.velto.model.RideStatus;
+import com.velto.pattern.state.RideContext;
 import com.velto.repository.RideRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * RideService utilizing the Builder Pattern (Ride.Builder) to safely construct Ride objects.
- */
 @Service
 public class RideServiceImpl implements RideService {
 
@@ -23,7 +21,6 @@ public class RideServiceImpl implements RideService {
 
     @Override
     public Ride createRide(CreateRideRequest request) {
-        // Employ GoF Builder Pattern to construct the Ride object step-by-step
         Ride ride = new Ride.Builder()
                 .driverId(request.getDriverId())
                 .driverName(request.getDriverName() != null ? request.getDriverName() : "Driver")
@@ -88,6 +85,17 @@ public class RideServiceImpl implements RideService {
         existingRide.setPreferences(request.getPreferences());
 
         return rideRepository.save(existingRide);
+    }
+
+    @Override
+    public Ride updateRideStatus(String rideId, RideStatus targetStatus) {
+        Ride ride = getRideById(rideId);
+
+        // Employ GoF State Pattern via RideContext
+        RideContext context = RideContext.fromRide(ride);
+        context.transitionTo(targetStatus);
+
+        return rideRepository.save(context.getRide());
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.velto.controller;
 import com.velto.dto.CreateRideRequest;
 import com.velto.dto.PriceCalculationResponse;
 import com.velto.model.Ride;
+import com.velto.model.RideStatus;
 import com.velto.pattern.strategy.PricingContext;
 import com.velto.pattern.strategy.PricingType;
 import com.velto.service.RideService;
@@ -14,10 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * REST Controller for managing ride creation, search, update, deletion,
- * and dynamic pricing calculations via Strategy Pattern.
- */
 @RestController
 @RequestMapping("/api/rides")
 @CrossOrigin(origins = "*")
@@ -63,15 +60,18 @@ public class RideController {
         return ResponseEntity.ok(updated);
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Ride> updateRideStatus(@PathVariable String id, @RequestParam RideStatus status) {
+        Ride updated = rideService.updateRideStatus(id, status);
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteRide(@PathVariable String id) {
         rideService.deleteRide(id);
         return ResponseEntity.ok(Map.of("message", "Ride deleted successfully"));
     }
 
-    /**
-     * Calculates the estimated price for a ride using the selected Strategy Pattern algorithm.
-     */
     @GetMapping("/{id}/calculate-price")
     public ResponseEntity<PriceCalculationResponse> calculatePrice(
             @PathVariable String id,
