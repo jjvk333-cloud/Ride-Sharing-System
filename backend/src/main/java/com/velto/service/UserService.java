@@ -1,5 +1,6 @@
 package com.velto.service;
 
+import com.velto.dto.LoginRequest;
 import com.velto.dto.RegisterRequest;
 import com.velto.model.Role;
 import com.velto.model.User;
@@ -10,6 +11,8 @@ import java.util.Optional;
 public interface UserService {
 
     User registerUser(RegisterRequest request);
+
+    User login(LoginRequest request);
 
     Optional<User> findById(String id);
 

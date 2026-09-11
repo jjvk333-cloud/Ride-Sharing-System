@@ -1,0 +1,102 @@
+{
+	"info": {
+		"_postman_id": "velto-auth-apis",
+		"name": "VELTO - Authentication APIs",
+		"description": "Collection of Registration and Login requests for VELTO Ride Sharing System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Register Passenger",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Venkat Passenger\",\n    \"email\": \"passenger@velto.com\",\n    \"password\": \"pass123\",\n    \"role\": \"PASSENGER\",\n    \"phone\": \"9876543210\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/auth/register",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "auth", "register"]
+				}
+			}
+		},
+		{
+			"name": "Register Driver",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Ravi Driver\",\n    \"email\": \"driver@velto.com\",\n    \"password\": \"pass123\",\n    \"role\": \"DRIVER\",\n    \"phone\": \"9876543211\",\n    \"vehicleNumber\": \"KA-05-MJ-4567\",\n    \"vehicleType\": \"Sedan\",\n    \"licenseNumber\": \"DL-554433\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/auth/register",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "auth", "register"]
+				}
+			}
+		},
+		{
+			"name": "Register Admin",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Admin Officer\",\n    \"email\": \"admin@velto.com\",\n    \"password\": \"pass123\",\n    \"role\": \"ADMIN\",\n    \"phone\": \"9876543212\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/auth/register",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "auth", "register"]
+				}
+			}
+		},
+		{
+			"name": "Login User",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"passenger@velto.com\",\n    \"password\": \"pass123\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/auth/login",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "auth", "login"]
+				}
+			}
+		}
+	]
+}
