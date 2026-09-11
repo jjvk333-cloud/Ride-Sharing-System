@@ -1,0 +1,59 @@
+{
+	"info": {
+		"_postman_id": "velto-bookings-apis",
+		"name": "VELTO - Bookings APIs",
+		"description": "Ride Booking APIs backed by RideBookingFacade for VELTO Ride Sharing System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Book a Ride (Facade)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"rideId\": \"REPLACE_WITH_RIDE_ID\",\n    \"passengerId\": \"REPLACE_WITH_USER_ID\",\n    \"seats\": 2,\n    \"pricingType\": \"STANDARD\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/bookings",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "bookings"]
+				}
+			}
+		},
+		{
+			"name": "Get User Bookings",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "http://localhost:8080/api/bookings/user/REPLACE_WITH_USER_ID",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "bookings", "user", "REPLACE_WITH_USER_ID"]
+				}
+			}
+		},
+		{
+			"name": "Get Booking by ID",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "http://localhost:8080/api/bookings/REPLACE_WITH_BOOKING_ID",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "bookings", "REPLACE_WITH_BOOKING_ID"]
+				}
+			}
+		}
+	]
+}
