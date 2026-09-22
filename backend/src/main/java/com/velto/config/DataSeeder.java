@@ -1,7 +1,12 @@
 package com.velto.config;
 
 import com.velto.dto.RegisterRequest;
+import com.velto.model.Booking;
+import com.velto.model.BookingStatus;
 import com.velto.model.Notification;
+import com.velto.model.PaymentStatus;
+import com.velto.pattern.strategy.PricingType;
+import com.velto.repository.BookingRepository;
 import com.velto.model.Ride;
 import com.velto.model.RideStatus;
 import com.velto.model.Role;
@@ -30,15 +35,18 @@ public class DataSeeder implements CommandLineRunner {
     private final UserService userService;
     private final RideRepository rideRepository;
     private final NotificationRepository notificationRepository;
+    private final BookingRepository bookingRepository;
 
     public DataSeeder(UserRepository userRepository,
                       UserService userService,
                       RideRepository rideRepository,
-                      NotificationRepository notificationRepository) {
+                      NotificationRepository notificationRepository,
+                      BookingRepository bookingRepository) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.rideRepository = rideRepository;
         this.notificationRepository = notificationRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     @Override
@@ -131,6 +139,41 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             rideRepository.save(ride3);
             log.info("Seeded 3 demo rides successfully.");
+
+            // Seed demo booking for Priya on ride1
+            Booking demoBooking = new Booking(
+                    ride1.getId(),
+                    pass1.getId(),
+                    pass1.getName(),
+                    2,
+                    500.0,
+                    PricingType.SHARED,
+                    PaymentStatus.PAID,
+                    BookingStatus.CONFIRMED
+            );
+            bookingRepository.save(demoBooking);
+            log.info("Seeded demo booking for {} on ride1.", pass1.getName());
+        }
+
+        // Ensure demo booking exists even if rides were already seeded
+        if (bookingRepository.count() == 0) {
+            java.util.List<com.velto.model.Ride> existingRides = rideRepository.findAll();
+            if (!existingRides.isEmpty()) {
+                userRepository.findByEmail("priya.passenger@velto.com").ifPresent(priya -> {
+                    Booking demoBooking = new Booking(
+                            existingRides.get(0).getId(),
+                            priya.getId(),
+                            priya.getName(),
+                            2,
+                            500.0,
+                            PricingType.SHARED,
+                            PaymentStatus.PAID,
+                            BookingStatus.CONFIRMED
+                    );
+                    bookingRepository.save(demoBooking);
+                    log.info("Seeded fallback demo booking for {}.", priya.getName());
+                });
+            }
         }
 
         // 5. Ensure Welcome Notification

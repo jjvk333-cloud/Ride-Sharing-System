@@ -17,4 +17,6 @@ public interface RideRepository extends MongoRepository<Ride, String> {
     List<Ride> findByPickupContainingIgnoreCaseAndDestinationContainingIgnoreCaseAndStatus(String pickup, String destination, RideStatus status);
 
     List<Ride> findByPickupContainingIgnoreCaseOrDestinationContainingIgnoreCase(String pickup, String destination);
+
+    List<Ride> findByPickupContainingIgnoreCaseAndDestinationContainingIgnoreCase(String pickup, String destination);
 }

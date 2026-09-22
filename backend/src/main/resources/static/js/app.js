@@ -458,12 +458,10 @@ async function loadPassengerBookings() {
         <td><span class="badge badge-${b.paymentStatus.toLowerCase()}">${b.paymentStatus}</span></td>
         <td>
           <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" onclick="openBoardingPass('${b.id}', '${b.passengerName || user.name}', '${b.seats}', ${b.amount}, '${b.bookingStatus}', '${b.paymentStatus}')">
+            <button class="btn btn-outline-primary" onclick="openBoardingPass('${b.id}', '${b.passengerName || user.name}', '${b.seats}', ${b.amount}, '${b.bookingStatus}', '${b.paymentStatus}', '${(allRides.find(r=>r.id===b.rideId)||{}).pickup||''}', '${(allRides.find(r=>r.id===b.rideId)||{}).destination||''}')">
               <i class="bi bi-qr-code"></i> Ticket
             </button>
-            <button class="btn btn-outline-success" onclick="openPaymentModal('${b.id}', ${b.amount})">
-              Pay
-            </button>
+            ${b.paymentStatus !== 'PAID' ? `<button class="btn btn-outline-success" onclick="openPaymentModal('${b.id}', ${b.amount})">Pay</button>` : `<span class="badge bg-success px-2 py-1">Paid</span>`}
             ${b.bookingStatus !== 'CANCELLED' ? `
               <button class="btn btn-outline-danger" onclick="cancelBooking('${b.id}')">
                 Cancel
@@ -480,12 +478,14 @@ async function loadPassengerBookings() {
 // ==========================================
 // PRINTABLE QR BOARDING PASS
 // ==========================================
-function openBoardingPass(bookingId, passengerName, seats, amount, bookingStatus, paymentStatus) {
+function openBoardingPass(bookingId, passengerName, seats, amount, bookingStatus, paymentStatus, pickup, destination) {
   document.getElementById('ticket-booking-id').textContent = `#BK-${bookingId.substring(0, 8).toUpperCase()}`;
   document.getElementById('ticket-passenger').textContent = passengerName;
   document.getElementById('ticket-seats').textContent = `${seats} Seat(s)`;
   document.getElementById('ticket-fare').textContent = `₹${parseFloat(amount).toFixed(2)}`;
   document.getElementById('ticket-payment-status').textContent = paymentStatus;
+  if (pickup) document.getElementById('ticket-from').textContent = pickup;
+  if (destination) document.getElementById('ticket-to').textContent = destination;
 
   // Clear previous QR code
   const qrcodeContainer = document.getElementById('qrcode');
@@ -661,8 +661,9 @@ async function handleCreateRide(e) {
     destination: document.getElementById('cr-destination').value,
     date: document.getElementById('cr-date').value,
     time: document.getElementById('cr-time').value,
-    availableSeats: parseInt(document.getElementById('cr-seats').value, 10),
-    price: parseFloat(document.getElementById('cr-price').value)
+    seats: parseInt(document.getElementById('cr-seats').value, 10),
+    price: parseFloat(document.getElementById('cr-price').value),
+    vehicleType: document.getElementById('cr-vehicleType').value
   };
 
   try {
@@ -863,10 +864,11 @@ async function testPatternLive(patternName) {
         `> Invariant protected: Ride cannot finish before driver is assigned!`;
     }
     else if (patternName === 'observer') {
-      const notifs = await API.notifications.getByUser('6aa4330f4919c2135b45d8d1').catch(() => []);
+      const notifs = await API.notifications.getByUser(Auth.getUser()?.id).catch(() => []);
       consoleEl.innerHTML = `> RideEventSubject -> Observers Broadcast:\n` +
         `> Registered Listeners: PassengerObserver, DriverObserver, AdminObserver\n` +
         `> Event Type: RIDE_STATUS_CHANGE\n` +
+        `> Live Notifications in DB: ${notifs.length}\n` +
         `> Decoupled Alerts Dispatched Successfully!`;
     }
     else if (patternName === 'adapter') {

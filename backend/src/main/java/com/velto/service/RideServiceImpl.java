@@ -61,8 +61,8 @@ public class RideServiceImpl implements RideService {
         }
 
         if (pickup != null && !pickup.isBlank() && destination != null && !destination.isBlank()) {
-            return rideRepository.findByPickupContainingIgnoreCaseAndDestinationContainingIgnoreCaseAndStatus(
-                    pickup, destination, RideStatus.REQUESTED
+            return rideRepository.findByPickupContainingIgnoreCaseAndDestinationContainingIgnoreCase(
+                    pickup, destination
             );
         }
 
