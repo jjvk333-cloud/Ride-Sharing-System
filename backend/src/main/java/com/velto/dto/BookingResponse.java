@@ -164,4 +164,17 @@ public class BookingResponse {
     public void setMessage(String message) {
         this.message = message;
     }
+
+    // JSON alias getters for robust frontend and test compatibility
+    public String getId() {
+        return bookingId;
+    }
+
+    public double getAmount() {
+        return amountPaid;
+    }
+
+    public int getSeats() {
+        return seatsBooked;
+    }
 }

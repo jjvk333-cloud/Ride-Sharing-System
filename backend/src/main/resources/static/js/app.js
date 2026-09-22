@@ -6,7 +6,15 @@
 let allRides = [];
 let currentCalcRide = null;
 let leafletMapInstance = null;
+let trackerLeafletMapInstance = null;
+let currentTrackingBooking = null;
+let currentVehicleFilter = 'ALL';
 let currentQRCode = null;
+let trackingSimulationTimer = null;
+let trackingCarMarker = null;
+let trackingRouteWaypoints = [];
+let trackingCurrentIndex = 0;
+let trackingCarAnimationTimer = null;
 
 // Geographic coordinate dictionary for interactive map demonstration
 const CITY_COORDINATES = {
@@ -14,6 +22,8 @@ const CITY_COORDINATES = {
   'pune railway station': [18.5289, 73.8744],
   'hinjewadi': [18.5913, 73.7389],
   'hinjewadi phase 1': [18.5913, 73.7389],
+  'hinjewadi phase 2': [18.5975, 73.7250],
+  'hinjewadi phase 3': [18.5830, 73.7050],
   'kothrud': [18.5074, 73.8077],
   'kothrud depot': [18.5074, 73.8077],
   'viman nagar': [18.5679, 73.9143],
@@ -22,6 +32,21 @@ const CITY_COORDINATES = {
   'baner high street': [18.5590, 73.7788],
   'kharadi': [18.5516, 73.9536],
   'kharadi eon free zone': [18.5516, 73.9536],
+  'wakad': [18.5987, 73.7660],
+  'hadapsar': [18.5089, 73.9259],
+  'magarpatta': [18.5137, 73.9304],
+  'magarpatta cybercity': [18.5137, 73.9304],
+  'swargate': [18.5018, 73.8587],
+  'shivajinagar': [18.5308, 73.8475],
+  'deccan': [18.5167, 73.8417],
+  'aundh': [18.5602, 73.8070],
+  'airport': [18.5822, 73.9197],
+  'pune international airport': [18.5822, 73.9197],
+  'katraj': [18.4529, 73.8553],
+  'bhosari': [18.6279, 73.8464],
+  'chakan': [18.7606, 73.8596],
+  'pimpri': [18.6298, 73.7997],
+  'chinchwad': [18.6445, 73.7925],
   'default_pickup': [18.5204, 73.8567],
   'default_dest': [18.5700, 73.8900]
 };
@@ -87,6 +112,7 @@ function showView(viewName) {
   // Trigger loads based on view
   if (viewName === 'search') loadRides();
   if (viewName === 'passenger') loadPassengerBookings();
+  if (viewName === 'tracking') refreshLiveTracker();
   if (viewName === 'driver') loadDriverRides();
   if (viewName === 'admin') loadAdminDashboard();
 }
@@ -226,6 +252,24 @@ function toggleDriverFields() {
   else fields.classList.add('d-none');
 }
 
+// Vehicle filter handler
+function filterByVehicleType(vType, element) {
+  currentVehicleFilter = vType.toUpperCase();
+  document.querySelectorAll('.vehicle-type-pill').forEach(el => el.classList.remove('active'));
+  if (element) element.classList.add('active');
+  renderRidesList();
+}
+
+// Helper to return icon and color for vehicle types
+function getVehicleBadge(vType = 'SEDAN') {
+  const norm = (vType || 'SEDAN').toUpperCase();
+  if (norm === 'BIKE') return '<span class="badge bg-warning text-dark"><i class="bi bi-bicycle me-1"></i>Bike</span>';
+  if (norm === 'AUTO') return '<span class="badge bg-success"><i class="bi bi-record-circle-fill me-1"></i>Auto</span>';
+  if (norm === 'SUV') return '<span class="badge bg-info text-dark"><i class="bi bi-truck-front-fill me-1"></i>SUV (6-Seater)</span>';
+  return '<span class="badge bg-primary"><i class="bi bi-car-front-fill me-1"></i>Sedan AC</span>';
+}
+
+
 // ==========================================
 // RIDES & PRICING (Builder & Strategy Pattern)
 // ==========================================
@@ -236,61 +280,73 @@ async function loadRides(pickup = '', destination = '') {
   try {
     const rides = await API.rides.getAll(pickup, destination);
     allRides = rides;
-
-    if (!rides || rides.length === 0) {
-      container.innerHTML = `
-        <div class="col-12 text-center py-5">
-          <i class="bi bi-geo-alt fs-1 text-muted"></i>
-          <h5 class="text-muted mt-2">No rides available matching your search criteria.</h5>
-          <button class="btn btn-outline-primary btn-sm mt-2" onclick="loadRides()">Show All Rides</button>
-        </div>`;
-      return;
-    }
-
-    container.innerHTML = rides.map(ride => `
-      <div class="col-md-6 col-lg-4">
-        <div class="ride-card p-3 h-100 d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <span class="badge badge-status-${ride.status} px-2 py-1">${ride.status}</span>
-            <span class="price-tag">₹${ride.price.toFixed(2)}</span>
-          </div>
-
-          <h5 class="fw-bold mb-1 text-dark">${ride.pickup}</h5>
-          <div class="text-muted small mb-2"><i class="bi bi-arrow-down"></i> to</div>
-          <h5 class="fw-bold mb-3 text-primary">${ride.destination}</h5>
-
-          <div class="border-top pt-2 mt-auto small text-muted">
-            <div class="d-flex justify-content-between mb-1">
-              <span><i class="bi bi-calendar-event me-1"></i> ${ride.date}</span>
-              <span><i class="bi bi-clock me-1"></i> ${ride.time}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span><i class="bi bi-person-fill me-1"></i> Driver: ${ride.driverName}</span>
-              <span class="badge bg-light text-dark border">
-                <i class="bi bi-people-fill text-primary"></i> ${ride.availableSeats} seats left
-              </span>
-            </div>
-            
-            <!-- Map Preview Action Button -->
-            <button class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="openRouteMap('${ride.pickup}', '${ride.destination}')">
-              <i class="bi bi-map-fill text-danger me-1"></i> View Route & Map
-            </button>
-
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-primary btn-sm flex-grow-1" onclick="openPriceModal('${ride.id}')">
-                <i class="bi bi-calculator me-1"></i> Pricing Strategy
-              </button>
-              <button class="btn btn-success btn-sm fw-bold px-3" onclick="bookRideDirect('${ride.id}')">
-                Book
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `).join('');
+    renderRidesList();
   } catch (err) {
     container.innerHTML = `<div class="col-12 alert alert-danger">Failed to load rides: ${err.message}</div>`;
   }
+}
+
+function renderRidesList() {
+  const container = document.getElementById('rides-catalogue-container');
+  let filtered = allRides;
+  if (currentVehicleFilter !== 'ALL') {
+    filtered = allRides.filter(r => (r.vehicleType || 'SEDAN').toUpperCase() === currentVehicleFilter);
+  }
+
+  if (!filtered || filtered.length === 0) {
+    container.innerHTML = `
+      <div class="col-12 text-center py-5">
+        <i class="bi bi-geo-alt fs-1 text-muted"></i>
+        <h5 class="text-muted mt-2">No rides available matching category ${currentVehicleFilter}.</h5>
+        <button class="btn btn-outline-primary btn-sm mt-2" onclick="filterByVehicleType('ALL')">Show All Categories</button>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(ride => `
+    <div class="col-md-6 col-lg-4">
+      <div class="ride-card p-3 h-100 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <span class="badge badge-status-${ride.status} px-2 py-1 me-1">${ride.status}</span>
+            ${getVehicleBadge(ride.vehicleType)}
+          </div>
+          <span class="price-tag">₹${ride.price.toFixed(2)}</span>
+        </div>
+
+        <h5 class="fw-bold mb-1 text-dark">${ride.pickup}</h5>
+        <div class="text-muted small mb-2"><i class="bi bi-arrow-down"></i> to</div>
+        <h5 class="fw-bold mb-3 text-primary">${ride.destination}</h5>
+
+        <div class="border-top pt-2 mt-auto small text-muted">
+          <div class="d-flex justify-content-between mb-1">
+            <span><i class="bi bi-calendar-event me-1"></i> ${ride.date}</span>
+            <span><i class="bi bi-clock me-1"></i> ${ride.time}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span><i class="bi bi-person-fill me-1"></i> Driver: <strong>${ride.driverName}</strong></span>
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-people-fill text-primary"></i> ${ride.availableSeats} seats left
+            </span>
+          </div>
+          
+          <!-- Map Preview Action Button -->
+          <button class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="openRouteMap('${ride.pickup}', '${ride.destination}')">
+            <i class="bi bi-map-fill text-danger me-1"></i> View Route & Map
+          </button>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm flex-grow-1" onclick="openPriceModal('${ride.id}')">
+              <i class="bi bi-calculator me-1"></i> Pricing Strategy
+            </button>
+            <button class="btn btn-success btn-sm fw-bold px-3" onclick="bookRideDirect('${ride.id}')">
+              Book
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function handleSearch(e) {
@@ -298,6 +354,163 @@ function handleSearch(e) {
   const pickup = document.getElementById('search-pickup').value.trim();
   const dest = document.getElementById('search-destination').value.trim();
   loadRides(pickup, dest);
+}
+
+// ==========================================
+// CUSTOM ROUTE BOOKING (Any User-Entered Pickup & Destination)
+// ==========================================
+function openCustomRideModal(initialPickup = '', initialDest = '') {
+  const heroPickup = initialPickup || document.getElementById('search-pickup')?.value.trim() || '';
+  const heroDest = initialDest || document.getElementById('search-destination')?.value.trim() || '';
+
+  if (heroPickup) document.getElementById('cust-pickup').value = heroPickup;
+  if (heroDest) document.getElementById('cust-destination').value = heroDest;
+
+  calculateCustomFareEstimate();
+  const modalEl = document.getElementById('customRideModal');
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+}
+
+function calculateCustomFareEstimate() {
+  const pickup = document.getElementById('cust-pickup')?.value.trim() || 'pune station';
+  const dest = document.getElementById('cust-destination')?.value.trim() || 'hinjewadi';
+  const vType = document.getElementById('cust-vehicleType')?.value || 'Sedan';
+  const seats = parseInt(document.getElementById('cust-seats')?.value, 10) || 1;
+  const strategy = document.getElementById('cust-strategy')?.value || 'STANDARD';
+
+  const coord1 = getCoords(pickup, CITY_COORDINATES['default_pickup']);
+  const coord2 = getCoords(dest, CITY_COORDINATES['default_dest']);
+  const distKm = calculateDistanceKm(coord1, coord2);
+
+  // Rate multipliers based on vehicle type
+  let baseRatePerKm = 14;
+  let minFare = 60;
+  if (vType === 'Bike') { baseRatePerKm = 7; minFare = 30; }
+  else if (vType === 'Auto') { baseRatePerKm = 10; minFare = 45; }
+  else if (vType === 'SUV') { baseRatePerKm = 20; minFare = 100; }
+
+  let baseTripFare = Math.max(minFare, distKm * baseRatePerKm);
+
+  // Multiplier from Strategy Pattern
+  let strategyMultiplier = 1.0;
+  let strategyLabel = 'Standard Rate (1.0x)';
+  if (strategy === 'PEAK') {
+    strategyMultiplier = 1.5;
+    strategyLabel = 'Peak Surge Pricing (1.5x)';
+  } else if (strategy === 'SHARED') {
+    strategyMultiplier = 0.8;
+    strategyLabel = 'Shared Carpooling Discount (0.8x)';
+  }
+
+  const estimatedTotal = Math.round(baseTripFare * seats * strategyMultiplier);
+
+  const distBadge = document.getElementById('cust-est-distance');
+  const fareEl = document.getElementById('cust-est-fare');
+  const stratLabel = document.getElementById('cust-strat-label');
+
+  if (distBadge) distBadge.textContent = `Approx. ${distKm} km`;
+  if (fareEl) fareEl.textContent = `₹${estimatedTotal}.00`;
+  if (stratLabel) stratLabel.textContent = `${strategyLabel} • ${vType}`;
+
+  return { distKm, estimatedTotal, baseTripFare };
+}
+
+async function submitCustomRideBooking(e) {
+  e.preventDefault();
+  if (!Auth.isLoggedIn()) {
+    showToast('Please sign in or use 1-Click Demo Login to book your custom ride!', 'warning');
+    const customModal = bootstrap.Modal.getInstance(document.getElementById('customRideModal'));
+    if (customModal) customModal.hide();
+    new bootstrap.Modal(document.getElementById('authModal')).show();
+    return;
+  }
+
+  const user = Auth.getUser();
+  const pickup = document.getElementById('cust-pickup').value.trim();
+  const destination = document.getElementById('cust-destination').value.trim();
+  const vehicleType = document.getElementById('cust-vehicleType').value;
+  const seats = parseInt(document.getElementById('cust-seats').value, 10);
+  const strategy = document.getElementById('cust-strategy').value;
+
+  const btn = document.getElementById('btn-submit-custom-ride');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Assigning Driver & Booking...`;
+
+  try {
+    const { estimatedTotal } = calculateCustomFareEstimate();
+
+    // 1. Resolve an available active driver or default to verified Rajesh Sharma
+    let driverId = '66e1f0000000000000000002';
+    let driverName = 'Rajesh Kumar';
+    try {
+      const allUsers = await API.users.getAll();
+      const onlineDriver = allUsers.find(u => u.role === 'DRIVER');
+      if (onlineDriver) {
+        driverId = onlineDriver.id;
+        driverName = onlineDriver.name;
+      }
+    } catch (ignore) {}
+
+    // Current formatted time & date
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const timeStr = `${hours}:${minutes} ${ampm}`;
+
+    // 2. Construct custom Ride via Builder Pattern
+    const ridePayload = {
+      driverId: driverId,
+      driverName: driverName,
+      pickup: pickup,
+      destination: destination,
+      date: dateStr,
+      time: timeStr,
+      seats: Math.max(seats + 2, 4),
+      price: Math.max(30, Math.round(estimatedTotal / seats)),
+      vehicleType: vehicleType
+    };
+
+    const createdRide = await API.rides.create(ridePayload);
+
+    // 3. Immediately book using RideBookingFacade
+    const bookingPayload = {
+      rideId: createdRide.id,
+      passengerId: user.id,
+      seats: seats,
+      pricingType: strategy
+    };
+
+    const bookingRes = await API.bookings.create(bookingPayload);
+
+    // Close modal
+    const customModal = bootstrap.Modal.getInstance(document.getElementById('customRideModal'));
+    if (customModal) customModal.hide();
+
+    showToast(`Custom ride booked successfully! ID: #${(bookingRes.bookingId || bookingRes.id).substring(0,8)}`, 'success');
+
+    // Enrich booking object with route details for instant live tracking
+    bookingRes.pickup = pickup;
+    bookingRes.destination = destination;
+    bookingRes.driverName = driverName;
+    bookingRes.vehicleType = vehicleType;
+
+    currentTrackingBooking = bookingRes;
+
+    // Refresh state
+    loadRides();
+    showView('tracking');
+    updateTrackingUI(bookingRes);
+  } catch (err) {
+    showToast(`Custom ride booking error: ${err.message}`, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-lightning-charge-fill me-1"></i> Book & Track Live`;
+  }
 }
 
 // ==========================================
@@ -317,12 +530,56 @@ function openRouteMap(pickup, dest) {
   }, { once: true });
 }
 
-function getCoords(placeName, defaultCoords) {
+function getCoords(placeName, defaultCoords = [18.5204, 73.8567]) {
+  if (!placeName || typeof placeName !== 'string') return defaultCoords;
   const norm = placeName.trim().toLowerCase();
   for (const [key, coords] of Object.entries(CITY_COORDINATES)) {
     if (norm.includes(key)) return coords;
   }
-  return defaultCoords;
+  // Deterministic pseudo-geocoder for arbitrary user-entered addresses
+  let hash = 0;
+  for (let i = 0; i < norm.length; i++) {
+    hash = (hash << 5) - hash + norm.charCodeAt(i);
+    hash |= 0;
+  }
+  const latOffset = ((Math.abs(hash) % 1000) / 1000 - 0.5) * 0.12; // +/- ~6km
+  const lngOffset = ((Math.abs(hash >> 3) % 1000) / 1000 - 0.5) * 0.16; // +/- ~8km
+  return [18.5204 + latOffset, 73.8567 + lngOffset];
+}
+
+// Compute great-circle distance in kilometers using Haversine formula
+function calculateDistanceKm(coord1, coord2) {
+  const R = 6371; // km
+  const dLat = (coord2[0] - coord1[0]) * Math.PI / 180;
+  const dLng = (coord2[1] - coord1[1]) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(coord1[0] * Math.PI / 180) * Math.cos(coord2[0] * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.max(1.5, Math.round(R * c * 10) / 10);
+}
+
+// Generate realistic intermediate navigation points along road corridors
+function generateRouteWaypoints(start, end, numPoints = 25) {
+  const points = [];
+  const midLat = (start[0] + end[0]) / 2;
+  const midLng = (start[1] + end[1]) / 2;
+  // Perpendicular curvature offset for realistic highway turns
+  const dLat = end[0] - start[0];
+  const dLng = end[1] - start[1];
+  const perpLat = -dLng * 0.18;
+  const perpLng = dLat * 0.18;
+
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    // Quadratic Bezier interpolation with slight road jitter
+    const jitterLat = (Math.sin(t * Math.PI * 4) * 0.0012);
+    const jitterLng = (Math.cos(t * Math.PI * 4) * 0.0012);
+    const lat = (1 - t) * (1 - t) * start[0] + 2 * (1 - t) * t * (midLat + perpLat) + t * t * end[0] + jitterLat;
+    const lng = (1 - t) * (1 - t) * start[1] + 2 * (1 - t) * t * (midLng + perpLng) + t * t * end[1] + jitterLng;
+    points.push([lat, lng]);
+  }
+  return points;
 }
 
 function renderLeafletRoute(pickup, dest) {
@@ -337,10 +594,11 @@ function renderLeafletRoute(pickup, dest) {
   // Initialize Leaflet map
   leafletMapInstance = L.map('leaflet-map').setView(startCoords, 12);
 
-  // OpenStreetMap Tile Layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 18
+  // Highly reliable CartoDB Voyager map tiles (no OSM volunteer server 403 block)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
   }).addTo(leafletMapInstance);
 
   // Custom marker for Pickup
@@ -458,6 +716,9 @@ async function loadPassengerBookings() {
         <td><span class="badge badge-${b.paymentStatus.toLowerCase()}">${b.paymentStatus}</span></td>
         <td>
           <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-info" onclick="trackBookingLive('${b.id}')" title="Track Live Status">
+              <i class="bi bi-geo-alt-fill"></i> Track
+            </button>
             <button class="btn btn-outline-primary" onclick="openBoardingPass('${b.id}', '${b.passengerName || user.name}', '${b.seats}', ${b.amount}, '${b.bookingStatus}', '${b.paymentStatus}', '${(allRides.find(r=>r.id===b.rideId)||{}).pickup||''}', '${(allRides.find(r=>r.id===b.rideId)||{}).destination||''}')">
               <i class="bi bi-qr-code"></i> Ticket
             </button>
@@ -892,4 +1153,421 @@ async function testPatternLive(patternName) {
   } catch (err) {
     consoleEl.innerHTML = `> [ERROR] Execution failed: ${err.message}`;
   }
+}
+
+// ==========================================
+// LIVE RIDE TRACKER & STATE PROGRESSION
+// ==========================================
+const RIDE_STATES_ORDER = [
+  'REQUESTED',
+  'CONFIRMED',
+  'DRIVER_ASSIGNED',
+  'DRIVER_ARRIVING',
+  'IN_PROGRESS',
+  'COMPLETED'
+];
+
+async function trackBookingLive(bookingId) {
+  try {
+    const booking = await API.bookings.getById(bookingId);
+    currentTrackingBooking = booking;
+    showView('tracking');
+    updateTrackingUI(booking);
+  } catch (err) {
+    showToast(`Failed to load booking for tracking: ${err.message}`, 'danger');
+  }
+}
+
+async function refreshLiveTracker() {
+  if (currentTrackingBooking) {
+    try {
+      const refreshed = await API.bookings.getById(currentTrackingBooking.id || currentTrackingBooking.bookingId);
+      currentTrackingBooking = refreshed;
+      updateTrackingUI(refreshed);
+      return;
+    } catch (e) {
+      console.warn('Could not refresh current tracking booking, falling back to latest.');
+    }
+  }
+
+  // Fallback: If logged in as passenger, get latest booking
+  if (Auth.isLoggedIn()) {
+    const user = Auth.getUser();
+    try {
+      const bookings = await API.bookings.getByUser(user.id);
+      if (bookings && bookings.length > 0) {
+        currentTrackingBooking = bookings[0];
+        updateTrackingUI(bookings[0]);
+        return;
+      }
+    } catch (e) {
+      console.warn('Error fetching passenger bookings for tracker', e);
+    }
+  }
+
+  // Generic fallback using first ride
+  if (allRides && allRides.length > 0) {
+    const r = allRides[0];
+    updateTrackingUI({
+      id: 'DEMO-' + r.id.substring(0, 6),
+      rideId: r.id,
+      passengerName: 'Campus Passenger',
+      pickup: r.pickup,
+      destination: r.destination,
+      seats: 1,
+      amount: r.price,
+      bookingStatus: r.status,
+      paymentStatus: 'PAID'
+    });
+  }
+}
+
+function updateTrackingUI(booking) {
+  if (!booking) return;
+
+  // Resolve matching ride details
+  const ride = allRides.find(r => r.id === booking.rideId) || {
+    pickup: booking.pickup || 'Pune Station',
+    destination: booking.destination || 'Hinjewadi Phase 1',
+    driverName: 'Rajesh Sharma',
+    vehicleType: 'Sedan',
+    status: booking.bookingStatus || 'REQUESTED'
+  };
+
+  const status = ride.status || booking.bookingStatus || 'REQUESTED';
+
+  // Update Trip Summary
+  document.getElementById('tracker-pickup').textContent = ride.pickup || booking.pickup || 'Pickup';
+  document.getElementById('tracker-destination').textContent = ride.destination || booking.destination || 'Destination';
+  document.getElementById('tracker-seats').textContent = `${booking.seats || 1} Seat(s)`;
+  document.getElementById('tracker-fare').textContent = `₹${(booking.amount || ride.price || 0).toFixed(2)}`;
+  document.getElementById('tracker-payment').textContent = booking.paymentStatus || 'PAID';
+  document.getElementById('tracker-driver-name').textContent = ride.driverName || 'Verified Driver';
+  document.getElementById('tracker-vehicle-type').textContent = `${ride.vehicleType || 'Sedan'} (Air Conditioned)`;
+
+  // Generate plausible license plate based on driver
+  const plateHash = Math.abs((ride.driverName || 'driver').split('').reduce((a, b) => a + b.charCodeAt(0), 1000) % 9000 + 1000);
+  document.getElementById('tracker-plate-number').textContent = `MH-12-VT-${plateHash}`;
+
+  // Update Stepper
+  renderStepperState(status);
+
+  // Render or update embedded Leaflet map with live GPS tracking
+  setTimeout(() => {
+    renderTrackerLeafletMap(ride.pickup || booking.pickup || 'pune station', ride.destination || booking.destination || 'hinjewadi', status);
+  }, 100);
+}
+
+function renderStepperState(currentStatus) {
+  const currentIndex = RIDE_STATES_ORDER.indexOf(currentStatus);
+  const badge = document.getElementById('tracker-current-badge');
+  const headline = document.getElementById('tracker-headline');
+  const subheadline = document.getElementById('tracker-subheadline');
+  const spinner = document.getElementById('tracker-spinner');
+  const alertBar = document.getElementById('tracker-status-alert');
+  const etaBadge = document.getElementById('tracker-eta-badge');
+
+  badge.textContent = currentStatus;
+  badge.className = `badge badge-status-${currentStatus} px-3 py-2 fs-6`;
+
+  // Calculate percentage width for progress bar
+  const validIdx = currentIndex >= 0 ? currentIndex : 0;
+  const progressPct = (validIdx / (RIDE_STATES_ORDER.length - 1)) * 90;
+  document.getElementById('tracker-progress-fill').style.width = `${progressPct}%`;
+
+  // Update step circles
+  RIDE_STATES_ORDER.forEach((stateName, idx) => {
+    const stepEl = document.getElementById(`step-${stateName}`);
+    if (!stepEl) return;
+
+    stepEl.classList.remove('completed', 'active');
+    if (idx < currentIndex) {
+      stepEl.classList.add('completed');
+    } else if (idx === currentIndex) {
+      stepEl.classList.add('active');
+    }
+  });
+
+  // Dynamic context messages based on State Pattern transitions
+  switch (currentStatus) {
+    case 'REQUESTED':
+      headline.textContent = 'Ride Requested — Awaiting Confirmation';
+      subheadline.textContent = 'The system is matching your booking with nearby registered drivers.';
+      alertBar.className = 'alert alert-secondary d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'ETA: Finding Driver...';
+      spinner.classList.remove('d-none');
+      break;
+    case 'CONFIRMED':
+      headline.textContent = 'Ride Confirmed!';
+      subheadline.textContent = 'Driver has accepted your request. Assigning vehicle...';
+      alertBar.className = 'alert alert-info d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'ETA: ~25 mins';
+      spinner.classList.remove('d-none');
+      break;
+    case 'DRIVER_ASSIGNED':
+      headline.textContent = 'Driver Assigned — Preparing Vehicle';
+      subheadline.textContent = 'Driver is reviewing the pickup route and preparing to depart.';
+      alertBar.className = 'alert alert-purple d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'ETA: ~18 mins';
+      spinner.classList.remove('d-none');
+      break;
+    case 'DRIVER_ARRIVING':
+      headline.textContent = 'Driver Arriving at Pickup!';
+      subheadline.textContent = 'Your driver is within 500 meters of your pickup point. Please be ready.';
+      alertBar.className = 'alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'ETA: ~3 mins (Arriving)';
+      spinner.classList.remove('d-none');
+      break;
+    case 'IN_PROGRESS':
+      headline.textContent = 'Ride In Progress — On the Move';
+      subheadline.textContent = 'Safe travels! Real-time GPS path is being updated to destination.';
+      alertBar.className = 'alert alert-primary d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'Trip in progress';
+      spinner.classList.remove('d-none');
+      break;
+    case 'COMPLETED':
+      headline.textContent = 'Ride Completed — You Have Arrived!';
+      subheadline.textContent = 'Thank you for riding with VELTO. We hope you had a comfortable trip!';
+      alertBar.className = 'alert alert-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3';
+      etaBadge.textContent = 'Arrived Safely';
+      spinner.classList.add('d-none');
+      break;
+    default:
+      headline.textContent = `Status: ${currentStatus}`;
+      subheadline.textContent = 'Live status monitored by Observer Pattern.';
+      spinner.classList.add('d-none');
+  }
+}
+
+// ==========================================
+// REAL-TIME GPS TRACKER WITH ANIMATED VEHICLE
+// ==========================================
+
+function renderTrackerLeafletMap(pickup, dest, currentStatus = 'REQUESTED') {
+  const mapContainer = document.getElementById('tracker-leaflet-map');
+  if (!mapContainer) return;
+
+  const startCoords = getCoords(pickup, CITY_COORDINATES['default_pickup']);
+  const endCoords = getCoords(dest, CITY_COORDINATES['default_dest']);
+
+  // Clean up any ongoing vehicle animation timer
+  if (trackingCarAnimationTimer) {
+    clearInterval(trackingCarAnimationTimer);
+    trackingCarAnimationTimer = null;
+  }
+
+  if (trackerLeafletMapInstance) {
+    trackerLeafletMapInstance.remove();
+    trackerLeafletMapInstance = null;
+    trackingCarMarker = null;
+  }
+
+  // Highly reliable CartoDB Voyager map tiles (resolves OpenStreetMap 403 access blocked tile policy error)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(trackerLeafletMapInstance);
+
+  // Custom Green Pin for Pickup
+  const pickupIcon = L.divIcon({
+    className: 'custom-pin-wrapper',
+    html: '<div class="custom-map-pin pin-pickup"><i class="bi bi-geo-alt-fill"></i></div>',
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34]
+  });
+
+  L.marker(startCoords, { icon: pickupIcon }).addTo(trackerLeafletMapInstance)
+    .bindPopup(`<strong>Pickup:</strong> ${pickup}`).openPopup();
+
+  // Custom Red Pin for Destination
+  const destIcon = L.divIcon({
+    className: 'custom-pin-wrapper',
+    html: '<div class="custom-map-pin pin-dest"><i class="bi bi-flag-fill"></i></div>',
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34]
+  });
+
+  L.marker(endCoords, { icon: destIcon }).addTo(trackerLeafletMapInstance)
+    .bindPopup(`<strong>Destination:</strong> ${dest}`);
+
+  // Generate realistic route waypoints along road curvature
+  trackingRouteWaypoints = generateRouteWaypoints(startCoords, endCoords, 30);
+
+  // Main route polyline
+  const polyline = L.polyline(trackingRouteWaypoints, {
+    color: '#4f46e5',
+    weight: 6,
+    opacity: 0.85,
+    dashArray: '8, 8'
+  }).addTo(trackerLeafletMapInstance);
+
+  // Animated Car DivIcon with pulsing radar ring
+  const carIcon = L.divIcon({
+    className: 'car-icon-wrapper',
+    html: `
+      <div class="position-relative d-flex align-items-center justify-content-center">
+        <div class="car-marker-pulse"></div>
+        <div class="car-marker-container" id="animated-vehicle-marker">
+          <i class="bi bi-car-front-fill"></i>
+        </div>
+      </div>
+    `,
+    iconSize: [58, 58],
+    iconAnchor: [29, 29]
+  });
+
+  // Decide initial position based on status
+  let initialPoint = trackingRouteWaypoints[0];
+  if (currentStatus === 'COMPLETED') {
+    initialPoint = trackingRouteWaypoints[trackingRouteWaypoints.length - 1];
+    trackingCurrentIndex = trackingRouteWaypoints.length - 1;
+  } else if (currentStatus === 'IN_PROGRESS') {
+    const halfIdx = Math.floor(trackingRouteWaypoints.length * 0.4);
+    initialPoint = trackingRouteWaypoints[halfIdx];
+    trackingCurrentIndex = halfIdx;
+  } else {
+    trackingCurrentIndex = 0;
+  }
+
+  trackingCarMarker = L.marker(initialPoint, { icon: carIcon }).addTo(trackerLeafletMapInstance);
+
+  trackerLeafletMapInstance.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  setTimeout(() => {
+    if (trackerLeafletMapInstance) trackerLeafletMapInstance.invalidateSize();
+  }, 250);
+
+  // Update ETA badge initial distance
+  const totalDist = calculateDistanceKm(startCoords, endCoords);
+  const etaBadge = document.getElementById('tracker-eta-badge');
+  if (etaBadge && currentStatus !== 'COMPLETED') {
+    const estMinutes = Math.max(3, Math.round(totalDist * 2.2));
+    etaBadge.textContent = `ETA: ~${estMinutes} mins (${totalDist} km)`;
+  }
+}
+
+// Animate car smoothly between waypoints
+function animateCarAlongWaypoints(startIdx, endIdx, durationMs = 2500, onComplete = null) {
+  if (!trackingCarMarker || !trackingRouteWaypoints.length) {
+    if (onComplete) onComplete();
+    return;
+  }
+
+  const steps = Math.max(1, endIdx - startIdx);
+  const stepInterval = Math.max(50, Math.floor(durationMs / steps));
+  let currentStep = startIdx;
+
+  if (trackingCarAnimationTimer) clearInterval(trackingCarAnimationTimer);
+
+  trackingCarAnimationTimer = setInterval(() => {
+    if (currentStep >= endIdx || currentStep >= trackingRouteWaypoints.length) {
+      clearInterval(trackingCarAnimationTimer);
+      trackingCarAnimationTimer = null;
+      trackingCurrentIndex = endIdx;
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const pt = trackingRouteWaypoints[currentStep];
+    trackingCarMarker.setLatLng(pt);
+
+    // Compute remaining distance & update dynamic ETA
+    const finalPt = trackingRouteWaypoints[trackingRouteWaypoints.length - 1];
+    const remKm = calculateDistanceKm(pt, finalPt);
+    const etaBadge = document.getElementById('tracker-eta-badge');
+    if (etaBadge) {
+      if (remKm <= 0.2) {
+        etaBadge.textContent = 'Arrived at Destination';
+      } else {
+        const remMins = Math.max(1, Math.round(remKm * 2.2));
+        etaBadge.textContent = `Live ETA: ~${remMins} mins (${remKm} km)`;
+      }
+    }
+
+    currentStep++;
+  }, stepInterval);
+}
+
+// Driver contact simulation
+function simulateDriverContact(type) {
+  const driverName = document.getElementById('tracker-driver-name').textContent;
+  if (type === 'call') {
+    showToast(`Dialing ${driverName} (+91 98230 XXXXX)... [SIMULATED CALL CONNECTED]`, 'success');
+  } else {
+    showToast(`Message sent to ${driverName}: "I am waiting at the pickup location."`, 'info');
+  }
+}
+
+// Toggle Driver Online / Offline status
+function toggleDriverOnlineStatus(toggleEl) {
+  const isOnline = toggleEl.checked;
+  const statusText = document.getElementById('driver-status-text');
+  if (isOnline) {
+    statusText.innerHTML = `<i class="bi bi-circle-fill text-success me-1"></i> Online & Accepting`;
+    showToast('Driver status: ONLINE. You will receive new ride requests.', 'success');
+  } else {
+    statusText.innerHTML = `<i class="bi bi-circle-fill text-secondary me-1"></i> Offline`;
+    showToast('Driver status: OFFLINE. New ride requests paused.', 'warning');
+  }
+}
+
+// Simulated real-time ride progress for Examiner / Viva Demo
+async function runSimulatedTrackingLifecycle() {
+  const btn = document.getElementById('btn-simulate-tracking');
+  if (!currentTrackingBooking) {
+    showToast('Please select or book a ride first to simulate tracking!', 'warning');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Live GPS Simulation In Progress...`;
+
+  const rideId = currentTrackingBooking.rideId;
+  const statesToSimulate = [
+    { state: 'CONFIRMED', waypointProgress: 0.1, duration: 1800 },
+    { state: 'DRIVER_ASSIGNED', waypointProgress: 0.25, duration: 2200 },
+    { state: 'DRIVER_ARRIVING', waypointProgress: 0.35, duration: 2200 },
+    { state: 'IN_PROGRESS', waypointProgress: 0.75, duration: 3200 },
+    { state: 'COMPLETED', waypointProgress: 1.0, duration: 2800 }
+  ];
+
+  let stepIdx = 0;
+
+  // Clear previous intervals
+  if (trackingSimulationTimer) clearInterval(trackingSimulationTimer);
+  if (trackingCarAnimationTimer) clearInterval(trackingCarAnimationTimer);
+
+  const executeNextLifecycleStep = async () => {
+    if (stepIdx >= statesToSimulate.length) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Re-simulate Progress`;
+      showToast('Ride lifecycle completed! Vehicle reached destination safely.', 'success');
+      loadRides();
+      loadPassengerBookings();
+      return;
+    }
+
+    const { state, waypointProgress, duration } = statesToSimulate[stepIdx];
+
+    try {
+      await API.rides.updateStatus(rideId, state);
+    } catch (ignore) {}
+
+    renderStepperState(state);
+    showToast(`State Pattern: Advanced to ${state} (Observers notified)`, 'info');
+
+    // Smoothly animate car marker along route waypoints
+    const totalWaypoints = trackingRouteWaypoints.length || 30;
+    const targetIdx = Math.min(totalWaypoints - 1, Math.round(waypointProgress * (totalWaypoints - 1)));
+    const startIdx = trackingCurrentIndex || 0;
+
+    animateCarAlongWaypoints(startIdx, targetIdx, duration, () => {
+      stepIdx++;
+      setTimeout(executeNextLifecycleStep, 600);
+    });
+  };
+
+  executeNextLifecycleStep();
 }

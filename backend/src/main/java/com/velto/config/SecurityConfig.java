@@ -55,8 +55,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/config/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/config/reset").hasRole("ADMIN")
                 
-                // Driver endpoints
-                .requestMatchers(HttpMethod.POST, "/api/rides").hasAnyRole("DRIVER", "ADMIN")
+                // Driver & Passenger Custom Route endpoints
+                .requestMatchers(HttpMethod.POST, "/api/rides").hasAnyRole("PASSENGER", "DRIVER", "ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/rides/*/status").hasAnyRole("DRIVER", "ADMIN")
                 
                 // Booking and payment endpoints

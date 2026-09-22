@@ -42,16 +42,19 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Booking> getBookingById(@PathVariable String id) {
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable String id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BookingException("Booking not found with ID: " + id));
-        return ResponseEntity.ok(booking);
+        return ResponseEntity.ok(rideBookingFacade.mapToBookingResponse(booking));
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Booking>> getBookingsByUser(@PathVariable String userId) {
+    public ResponseEntity<List<BookingResponse>> getBookingsByUser(@PathVariable String userId) {
         List<Booking> bookings = bookingRepository.findByPassengerId(userId);
-        return ResponseEntity.ok(bookings);
+        List<BookingResponse> responses = bookings.stream()
+                .map(rideBookingFacade::mapToBookingResponse)
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/ride/{rideId}")

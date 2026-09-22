@@ -1,23 +1,24 @@
-# 🚗 VELTO — Intelligent Ride Sharing System
+# 🚗 VELTO — Intelligent Full-Stack Ride Sharing System
 
 [![Java 17](https://img.shields.io/badge/Java-17%20LTS-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot 3.3.4](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![MongoDB Community 8.x](https://img.shields.io/badge/MongoDB-Community%20Server-green.svg)](https://www.mongodb.com/)
 [![Maven 3.9+](https://img.shields.io/badge/Build-Maven%203.9-blue.svg)](https://maven.apache.org/)
 [![Bootstrap 5.3](https://img.shields.io/badge/Frontend-Bootstrap%205.3-purple.svg)](https://getbootstrap.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-53%20Passed-success.svg)](#automated-testing)
+[![Tests Passing](https://img.shields.io/badge/Tests-53%20Passed-success.svg)](#-automated-testing-verification)
 
-**VELTO** is an enterprise-grade, full-stack ride sharing platform engineered for campus and metropolitan commuter ecosystems. Built with **Java 17**, **Spring Boot 3.3.4**, **MongoDB**, and a responsive **HTML5/Bootstrap 5** frontend, VELTO demonstrates **8 Gang of Four (GoF) Design Patterns** solving real-world transportation challenges.
+**VELTO** is an enterprise-grade, realistic full-stack ride sharing platform engineered for campus and metropolitan commuter ecosystems. Built with **Java 17**, **Spring Boot 3.3.4**, **MongoDB**, and a responsive **HTML5/Bootstrap 5/Leaflet.js** frontend, VELTO demonstrates **8 Gang of Four (GoF) Design Patterns** working authentically behind the scenes in real business workflows.
 
 ---
 
-## 🌟 Key Highlights
-- **No-Bloat Architecture**: Pure Java 17 + Spring Boot 3 backend and pure HTML5/CSS3/Vanilla JS frontend (no heavy npm build steps or bloated frontend frameworks).
-- **8 GoF Design Patterns**: Factory Method, Strategy, Builder, Facade, State, Observer, Adapter, and Singleton patterns fully implemented, tested, and documented.
-- **1-Click Viva Demo Bar**: Top banner with instant 1-click login for Admin, Driver, and Passenger roles.
-- **Dynamic Pricing Engine**: Real-time Strategy pattern computing Standard (1.0x), Peak Surge (1.5x), and Shared Carpooling (0.8x) fares.
-- **Unified Payment Adapters**: Harmonizes UPI VPA, Credit/Debit Cards, and Cash settlement behind a single processor interface.
-- **Automated Seeder**: Pre-provisions sample demo accounts, active rides, and notifications on clean startup.
+## 🌟 Key Application Features
+
+- **Realistic Ride Sharing UI**: Modern hero banner, vehicle category pills (Bike, Auto, Sedan, SUV), interactive ride catalogue, dynamic seat badges, and printable QR boarding passes.
+- **Dedicated Live Ride Tracker (`#view-tracking`)**: Real-time visual stepper displaying finite state machine transitions (`REQUESTED` ➔ `CONFIRMED` ➔ `DRIVER_ASSIGNED` ➔ `DRIVER_ARRIVING` ➔ `IN_PROGRESS` ➔ `COMPLETED`), animated progress bar, driver call/message simulation, and embedded Leaflet GPS routing.
+- **Driver Portal with Online/Offline Switch**: Manage published rides, toggle availability status, and advance ride state step-by-step with real-time observer notifications.
+- **1-Click College Viva Demo Bar**: Instant one-click authentication for Admin, Driver (Rajesh), and Passenger (Priya).
+- **Dedicated Academic 8 Patterns Section (`#view-patterns`)**: Full architectural breakdown and interactive live execution consoles for every GoF pattern.
+- **53/53 Automated Tests Passing**: Robust test coverage across all layers with clean Maven builds.
 
 ---
 
@@ -25,26 +26,26 @@
 
 | Role | Name | Email | Password | Details |
 |---|---|---|---|---|
-| **ADMIN** | Velto Admin | `admin@velto.com` | `Admin@123` | Full system audit & runtime configuration |
-| **DRIVER** | Rajesh Kumar | `rajesh.driver@velto.com` | `Driver@123` | Vehicle: `MH-12-AB-1234` |
-| **DRIVER** | Amit Sharma | `amit.driver@velto.com` | `Driver@123` | Vehicle: `MH-14-XY-5678` |
-| **PASSENGER** | Priya Patel | `priya.passenger@velto.com` | `Passenger@123` | Booking & Payment access |
-| **PASSENGER** | Rohit Verma | `rohit.passenger@velto.com` | `Passenger@123` | Booking & Payment access |
+| **ADMIN** | Velto Admin | `admin@velto.com` | `Admin@123` | Full system audit, KPI dashboard & runtime Singleton config |
+| **DRIVER** | Rajesh Kumar | `rajesh.driver@velto.com` | `Driver@123` | Vehicle: `MH-12-AB-1234` (Sedan / SUV) |
+| **DRIVER** | Amit Sharma | `amit.driver@velto.com` | `Driver@123` | Vehicle: `MH-14-XY-5678` (Auto / Bike) |
+| **PASSENGER** | Priya Patel | `priya.passenger@velto.com` | `Passenger@123` | Active bookings, boarding pass, Live Tracker |
+| **PASSENGER** | Rohit Verma | `rohit.passenger@velto.com` | `Passenger@123` | Active booking & payment access |
 
 ---
 
-## 🏗️ 8 Gang of Four (GoF) Design Patterns
+## 🏗️ 8 Gang of Four (GoF) Design Patterns Implementation
 
-| Pattern | Category | Java Package | Real-World Problem Solved |
-|---|---|---|---|
-| **1. Factory Method** | Creational | `com.velto.pattern.factory` | Polymorphic instantiation of `Passenger`, `Driver`, and `Admin` user types. |
-| **2. Strategy** | Behavioral | `com.velto.pattern.strategy` | Dynamic pricing calculation (Standard, Peak Surge 1.5x, Shared Discount 0.8x). |
-| **3. Builder** | Creational | `com.velto.pattern.builder` | Fluent construction and invariant validation of complex `Ride` documents via `RideBuilder`. |
-| **4. Facade** | Structural | `com.velto.pattern.facade` | Atomic orchestration of ride booking, Strategy pricing, Payment Adapter settlement, and Observer alerts. |
-| **5. State** | Behavioral | `com.velto.pattern.state` | Managing the 7-phase ride lifecycle finite state machine and blocking illegal transitions. |
-| **6. Observer** | Behavioral | `com.velto.pattern.observer` | Real-time decoupled notification broadcasting to passengers, drivers, and admins. |
-| **7. Adapter** | Structural | `com.velto.pattern.adapter` | Unified payment interface adapting UPI VPA, 16-digit Card, and Cash counter APIs. |
-| **8. Singleton** | Creational | `com.velto.pattern.singleton` | Centralized, thread-safe runtime configuration with Double-Checked Locking (DCL). |
+| # | Pattern | Category | Java Package | Real Business Responsibility in VELTO |
+|---|---|---|---|---|
+| 1 | **Factory Method** | Creational | `com.velto.pattern.factory` | Polymorphic creation of `Passenger`, `Driver`, and `Admin` entities with strict role validation and default attributes. |
+| 2 | **Strategy** | Behavioral | `com.velto.pattern.strategy` | Runtime calculation of fares via interchangeable algorithms: `StandardPricingStrategy` (1.0x), `PeakPricingStrategy` (1.5x surge), and `SharedRidePricingStrategy` (0.8x carpool discount). |
+| 3 | **Builder** | Creational | `com.velto.pattern.builder` | Fluent construction of complex `Ride` documents (`RideBuilder` / `Ride.Builder`), validating invariants before persistence. |
+| 4 | **Facade** | Structural | `com.velto.pattern.facade` | `RideBookingFacade` acts as a unified orchestrator coordinating User verification, Ride state validation, Strategy pricing, Payment Adapter processing, seat decrement, and Observer alerts. |
+| 5 | **State** | Behavioral | `com.velto.pattern.state` | Manages 7 distinct ride lifecycle states (`REQUESTED`, `CONFIRMED`, `DRIVER_ASSIGNED`, `DRIVER_ARRIVING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`) and strictly blocks illegal jumps. |
+| 6 | **Observer** | Behavioral | `com.velto.pattern.observer` | `RideEventSubject` broadcasts decoupled status alerts to registered `PassengerNotificationObserver`, `DriverNotificationObserver`, and `AdminNotificationObserver`. |
+| 7 | **Adapter** | Structural | `com.velto.pattern.adapter` | Harmonizes third-party payment gateways (`UpiPaymentAdapter` for VPA, `CardPaymentAdapter` for 16-digit cards, and `MockPaymentAdapter` for cash settlement) behind `PaymentProcessor`. |
+| 8 | **Singleton** | Creational | `com.velto.pattern.singleton` | `AppConfigSingleton` guarantees a single, thread-safe instance managing runtime fare parameters, surge multipliers, and maintenance mode using Double-Checked Locking (DCL). |
 
 ---
 
@@ -55,94 +56,84 @@
 2. **Maven 3.9+** (`mvn -version`)
 3. **MongoDB Community Server** running locally on port `27017`
 
-### 1. One-Click Startup (Windows)
-Double-click **`start-velto.bat`** in the project root. It will:
-1. Verify MongoDB connectivity.
-2. Build and launch the Spring Boot backend (`http://localhost:8080`).
-3. Launch the responsive frontend in your default browser.
+### Method 1: Instant One-Click Launcher (Windows)
+Double-click **`start-velto.bat`** in the project root folder. It checks MongoDB, compiles the backend, starts the Spring Boot server on port `8080`, and opens the frontend in your browser.
 
-### 2. Manual Startup
+### Method 2: Manual Terminal Execution
 
-#### Step A: Start Backend
-```bash
+#### Terminal 1 — Start Backend:
+```powershell
 cd backend
 mvn spring-boot:run
 ```
-Backend will start on: `http://localhost:8080` (Auto-seeds demo data if database is empty).
+The server will start at `http://localhost:8080`.
 
-#### Step B: Open Frontend
-Simply open `frontend/index.html` in any modern web browser, or serve via VS Code Live Server / Python:
-```bash
-cd frontend
-python -m http.server 3000
+#### Terminal 2 — Access Frontend:
+The frontend is served directly by Spring Boot at:
+```text
+http://localhost:8080/index.html
 ```
-Open: `http://localhost:3000`
+Or open `frontend/index.html` directly in your browser.
 
 ---
 
-## 🧪 Automated Testing
-Run the complete test suite containing **53 automated tests**:
-```bash
+## 🧪 Automated Testing Verification
+
+The project includes **53 automated unit and integration tests** verifying all business logic and design patterns:
+
+```powershell
 cd backend
 mvn clean test
 ```
 
-### Test Suite Summary
-- `UserFactoryTests`: Factory Method polymorphic instantiation.
-- `PricingStrategyTests`: Dynamic strategy pricing calculations.
-- `RideBuilderTests`: Standalone `RideBuilder` and `Ride.Builder` parameter validations.
-- `BookingFacadeTests`: End-to-end facade coordination with Payment Adapters, seat reservation, rollback, and cancellation.
-- `SecurityAuthorizationTests`: Role-based access control guarding Passenger, Driver, and Admin operations.
-- `RideStateTests`: Lifecycle forward transitions and illegal transition rejection.
-- `RideObserverTests`: Multi-actor alert broadcasting.
-- `PaymentAdapterTests`: UPI, Card, and Cash adapter translations.
-- `SingletonPatternTests`: 50 concurrent worker threads, reflection attack defense, and serialization preservation.
+### Test Suite Execution Output:
+```text
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 53, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+```
 
 ---
 
-## 📁 Project Directory Structure
-```
+## 🗺️ Project File Structure
+
+```text
 Ride sharing System/
-├── backend/                              # Spring Boot 3.3.4 Application
-│   ├── src/main/java/com/velto/
-│   │   ├── config/                       # CORS, MongoDB Verifier, DataSeeder
-│   │   ├── controller/                   # REST API Controllers
-│   │   ├── dto/                          # Data Transfer Objects
-│   │   ├── exception/                    # Global Exception Handler & Custom Errors
-│   │   ├── model/                        # MongoDB Document Entities & Enums
-│   │   ├── pattern/                      # 8 Gang of Four Design Patterns
-│   │   │   ├── factory/                  # Factory Method Pattern
-│   │   │   ├── strategy/                 # Strategy Pattern
-│   │   │   ├── builder/                  # Builder Pattern
-│   │   │   ├── facade/                   # Facade Pattern
-│   │   │   ├── state/                    # State Pattern
-│   │   │   ├── observer/                 # Observer Pattern
-│   │   │   ├── adapter/                  # Adapter Pattern
-│   │   │   └── singleton/                # Singleton Pattern
-│   │   ├── repository/                   # Spring Data Repositories
-│   │   └── service/                      # Business Services
-│   └── src/test/java/com/velto/          # 44 Automated Unit & Pattern Tests
-├── frontend/                             # Responsive Web Frontend
-│   ├── css/styles.css                    # Modern CSS Theme
-│   ├── js/api.js                         # Central REST API Client
-│   ├── js/auth.js                        # Session Management
-│   ├── js/app.js                         # View Controller & Pattern Showcase
-│   └── index.html                        # Main Single-Page Application
-├── database/                             # Database Schema & Initialization
-│   └── init-mongo.js
-├── documentation/                        # Comprehensive Architectural & Viva Docs
-│   ├── ARCHITECTURE.md                   # System Architecture Specification
-│   ├── DESIGN_PATTERNS.md                # 8 GoF Patterns Catalog & UML Diagrams
-│   └── VIVA_QUESTIONS_AND_ANSWERS.md     # 30+ Viva Examiner Q&A Guide
-├── postman/                              # Postman API Collections
-│   └── Velto_Master_API.postman_collection.json
-├── start-velto.bat                       # 1-Click Windows Launch Script
-└── README.md                             # Project Documentation
+├── backend/
+│   ├── pom.xml
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/velto/
+│       │   │   ├── config/              # Security, CORS, Mongo, DataSeeder
+│       │   │   ├── controller/          # REST Controllers (Auth, Rides, Bookings, Config, etc.)
+│       │   │   ├── dto/                 # Request & Response DTOs
+│       │   │   ├── model/               # Domain Models (User, Ride, Booking, Payment, Notification)
+│       │   │   ├── pattern/             # The 8 GoF Design Patterns
+│       │   │   │   ├── adapter/         # PaymentProcessor & Adapters
+│       │   │   │   ├── builder/         # RideBuilder
+│       │   │   │   ├── facade/          # RideBookingFacade
+│       │   │   │   ├── factory/         # UserFactory
+│       │   │   │   ├── observer/        # RideEventSubject & Observers
+│       │   │   │   ├── singleton/       # AppConfigSingleton
+│       │   │   │   ├── state/           # RideState finite state machine
+│       │   │   │   └── strategy/        # PricingStrategy & Context
+│       │   │   ├── repository/          # Spring Data MongoDB Repositories
+│       │   │   └── service/             # Business Services
+│       │   └── resources/
+│       │       ├── application.properties
+│       │       └── static/              # Bundled Frontend (HTML/CSS/JS)
+│       └── test/java/com/velto/         # 53 Automated Tests for all 8 Patterns
+├── frontend/
+│   ├── index.html                       # Modern Full-Stack UI with Live Tracker & Academic Tabs
+│   ├── css/styles.css                   # Custom Stepper, Vehicle Cards, & Responsive Design
+│   └── js/
+│       ├── api.js                       # Centralized REST API Client
+│       ├── auth.js                      # Token Management & State
+│       └── app.js                       # Full Interactive Controller, Maps & Steppers
+├── start-velto.bat                      # One-click startup script
+└── README.md                            # Comprehensive Documentation
 ```
-
----
-
-## 📜 Documentation Links
-- [System Architecture Specification](documentation/ARCHITECTURE.md)
-- [Complete 8 GoF Design Patterns Catalog](documentation/DESIGN_PATTERNS.md)
-- [Examiner Viva Q&A Guide](documentation/VIVA_QUESTIONS_AND_ANSWERS.md)

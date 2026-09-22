@@ -134,17 +134,17 @@ public class RideBookingFacade {
         ride.setAvailableSeats(ride.getAvailableSeats() - request.getSeats());
         rideRepository.save(ride);
 
-        // Step 8: Persist Booking record
-        Booking booking = new Booking(
-                ride.getId(),
-                passenger.getId(),
-                passenger.getName(),
-                request.getSeats(),
-                totalAmount,
-                request.getPricingType(),
-                PaymentStatus.PAID,
-                BookingStatus.CONFIRMED
-        );
+        // Step 8: Persist Booking record using GoF Builder Pattern (BookingBuilder)
+        Booking booking = new com.velto.pattern.builder.BookingBuilder()
+                .rideId(ride.getId())
+                .passengerId(passenger.getId())
+                .passengerName(passenger.getName())
+                .seats(request.getSeats())
+                .amount(totalAmount)
+                .pricingType(request.getPricingType())
+                .paymentStatus(PaymentStatus.PAID)
+                .bookingStatus(BookingStatus.CONFIRMED)
+                .build();
         Booking savedBooking = bookingRepository.save(booking);
 
         // Step 9: Persist reconciled Payment document
@@ -256,5 +256,37 @@ public class RideBookingFacade {
         notificationRepository.save(passengerAlert);
 
         return updated;
+    }
+
+    /**
+     * Maps an internal Booking entity into a rich BookingResponse enriched with
+     * pickup, destination, schedule, vehicle type, and driver details from the associated Ride.
+     */
+    public BookingResponse mapToBookingResponse(Booking booking) {
+        if (booking == null) return null;
+
+        Ride ride = rideRepository.findById(booking.getRideId()).orElse(null);
+        String pickup = (ride != null) ? ride.getPickup() : "Pickup Location";
+        String destination = (ride != null) ? ride.getDestination() : "Destination";
+        String date = (ride != null) ? ride.getDate() : "";
+        String time = (ride != null) ? ride.getTime() : "";
+
+        return new BookingResponse(
+                booking.getId(),
+                booking.getRideId(),
+                booking.getPassengerId(),
+                booking.getPassengerName(),
+                pickup,
+                destination,
+                date,
+                time,
+                booking.getSeats(),
+                booking.getAmount(),
+                booking.getPricingType(),
+                booking.getPaymentStatus(),
+                booking.getBookingStatus(),
+                booking.getCreatedAt(),
+                "Booking details retrieved successfully."
+        );
     }
 }
