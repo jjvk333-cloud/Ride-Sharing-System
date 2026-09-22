@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -76,6 +77,7 @@ class BookingControllerTests {
     }
 
     @Test
+    @WithMockUser(username = "ctrl.pass@velto.com", roles = {"PASSENGER"})
     @DisplayName("POST /api/bookings books ride through Facade and returns 201 Created")
     void testCreateBookingEndpoint() throws Exception {
         CreateBookingRequest request = new CreateBookingRequest(
@@ -96,6 +98,7 @@ class BookingControllerTests {
     }
 
     @Test
+    @WithMockUser(username = "ctrl.pass@velto.com", roles = {"PASSENGER"})
     @DisplayName("GET /api/bookings/user/{userId} returns booking history for user")
     void testGetBookingsByUser() throws Exception {
         CreateBookingRequest request = new CreateBookingRequest(

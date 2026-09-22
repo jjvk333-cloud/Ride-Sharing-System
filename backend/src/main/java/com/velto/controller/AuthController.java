@@ -27,12 +27,16 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         User user = userService.registerUser(request);
+        String token = java.util.Base64.getEncoder().encodeToString(
+                (request.getEmail() + ":" + request.getPassword()).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
         AuthResponse response = new AuthResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
                 user.getPhone(),
+                token,
                 "User registered successfully"
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -41,12 +45,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userService.login(request);
+        String token = java.util.Base64.getEncoder().encodeToString(
+                (request.getEmail() + ":" + request.getPassword()).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
         AuthResponse response = new AuthResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
                 user.getPhone(),
+                token,
                 "Login successful"
         );
         return ResponseEntity.ok(response);

@@ -4,6 +4,7 @@ import com.velto.dto.CreateRideRequest;
 import com.velto.exception.RideNotFoundException;
 import com.velto.model.Ride;
 import com.velto.model.RideStatus;
+import com.velto.pattern.builder.RideBuilder;
 import com.velto.pattern.observer.RideEvent;
 import com.velto.pattern.observer.RideEventSubject;
 import com.velto.pattern.state.RideContext;
@@ -25,7 +26,8 @@ public class RideServiceImpl implements RideService {
 
     @Override
     public Ride createRide(CreateRideRequest request) {
-        Ride ride = new Ride.Builder()
+        // Employ GoF Builder Pattern (com.velto.pattern.builder.RideBuilder)
+        Ride ride = new RideBuilder()
                 .driverId(request.getDriverId())
                 .driverName(request.getDriverName() != null ? request.getDriverName() : "Driver")
                 .pickup(request.getPickup())

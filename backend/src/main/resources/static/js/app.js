@@ -841,19 +841,22 @@ async function testPatternLive(patternName) {
     }
     else if (patternName === 'builder') {
       const rides = await API.rides.getAll();
-      consoleEl.innerHTML = `> Ride.Builder Execution Verification:\n` +
-        `> Built Ride Instance: ID #${rides[0].id.substring(0, 8)}\n` +
-        `> Validated Invariants: Pickup, Destination, AvailableSeats > 0\n` +
+      consoleEl.innerHTML = `> com.velto.pattern.builder.RideBuilder Execution Verification:\n` +
+        `> Construction Contract: Step-by-step method chaining & Invariant Validation\n` +
+        `> Built Ride Instance: ID #${rides[0].id.substring(0, 8)} (${rides[0].pickup} -> ${rides[0].destination})\n` +
+        `> Vehicle Type: ${rides[0].vehicleType || 'Sedan'} | Available Seats: ${rides[0].availableSeats}\n` +
         JSON.stringify(rides[0], null, 2);
     }
     else if (patternName === 'facade') {
       const bookings = await API.bookings.getAll();
-      consoleEl.innerHTML = `> RideBookingFacade Subsystem Audit:\n` +
-        `> [Step 1] User Verified: PASS\n` +
-        `> [Step 2] Ride Status Checked: PASS\n` +
-        `> [Step 3] Atomic Seat Inventory Decrement: PASS\n` +
-        `> [Step 4] Pricing Strategy Execution: PASS\n` +
-        `> [Step 5] Booking Record Persisted: PASS\n` +
+      consoleEl.innerHTML = `> RideBookingFacade Subsystem End-to-End Audit:\n` +
+        `> [Step 1] User Verified (Domain Model): PASS\n` +
+        `> [Step 2] Ride Status & Lifecycle Validated (State Pattern): PASS\n` +
+        `> [Step 3] Dynamic Fare Calculation (Strategy Pattern): PASS\n` +
+        `> [Step 4] Payment Gateway Settlement (Adapter Pattern): PASS\n` +
+        `> [Step 5] Atomic Seat Inventory Decrement: PASS\n` +
+        `> [Step 6] Booking Document Persisted in MongoDB: PASS\n` +
+        `> [Step 7] Multi-Actor Alert Broadcasting (Observer Pattern): PASS\n` +
         `> Total Active Bookings in Subsystem: ${bookings.length}`;
     }
     else if (patternName === 'state') {

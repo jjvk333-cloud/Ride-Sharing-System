@@ -30,14 +30,14 @@ Spring Boot 3 brings baseline support for **Java 17**, upgraded HTTP/2 and Virtu
 
 ### Q4. Walk us through all 8 Design Patterns implemented in your project.
 **Answer:**
-1. **Factory Method (Creational)**: `UserFactory` dynamically instantiates role-specific `Passenger`, `Driver`, or `Admin` user documents.
-2. **Strategy (Behavioral)**: `PricingStrategy` enables dynamic runtime fare calculations (`StandardPricingStrategy`, `PeakPricingStrategy`, `SharedRidePricingStrategy`) via `PricingContext`.
-3. **Builder (Creational)**: `Ride.Builder` constructs immutable, validated `Ride` documents avoiding telescoping constructors.
-4. **Facade (Structural)**: `RideBookingFacade` hides the complexity of a 6-step ride reservation workflow behind a single method call.
-5. **State (Behavioral)**: `RideState` encapsulates the 7-phase ride lifecycle finite state machine and guards against illegal transitions.
-6. **Observer (Behavioral)**: `RideEventSubject` broadcasts ride status events to `PassengerNotificationObserver`, `DriverNotificationObserver`, and `AdminNotificationObserver`.
-7. **Adapter (Structural)**: `PaymentProcessor` adapts incompatible external gateway APIs (UPI VPA, Credit/Debit Card 16-digit engine, Cash counter).
-8. **Singleton (Creational)**: `AppConfigSingleton` ensures a thread-safe, double-checked locked global runtime configuration instance.
+1. **Factory Method (Creational)**: `UserFactory` in `com.velto.pattern.factory` dynamically instantiates role-specific `Passenger`, `Driver`, or `Admin` user documents.
+2. **Strategy (Behavioral)**: `PricingStrategy` in `com.velto.pattern.strategy` enables dynamic runtime fare calculations (`StandardPricingStrategy`, `PeakPricingStrategy`, `SharedRidePricingStrategy`) via `PricingContext`.
+3. **Builder (Creational)**: Dedicated `RideBuilder` in `com.velto.pattern.builder` constructs immutable, validated `Ride` documents avoiding telescoping constructors.
+4. **Facade (Structural)**: `RideBookingFacade` in `com.velto.pattern.facade` coordinates the entire end-to-end booking transaction (verification, strategy pricing, payment adapter settlement, seat reservation, persistence, and observer alerting) behind one unified method call.
+5. **State (Behavioral)**: `RideState` in `com.velto.pattern.state` encapsulates the 7-phase ride lifecycle finite state machine and guards against illegal transitions.
+6. **Observer (Behavioral)**: `RideEventSubject` in `com.velto.pattern.observer` broadcasts ride status events to `PassengerNotificationObserver`, `DriverNotificationObserver`, and `AdminNotificationObserver`.
+7. **Adapter (Structural)**: `PaymentProcessor` in `com.velto.pattern.adapter` adapts incompatible external gateway APIs (UPI VPA, Credit/Debit Card 16-digit engine, Cash counter).
+8. **Singleton (Creational)**: `AppConfigSingleton` in `com.velto.pattern.singleton` ensures a thread-safe, double-checked locked global runtime configuration instance.
 
 ---
 
@@ -55,9 +55,10 @@ Ride booking is an atomic business transaction touching multiple disparate subsy
 2. Ride status validation
 3. Available seat verification & seat count decrement
 4. Dynamic pricing strategy execution
-5. Payment processor authorization
-6. Booking document persistence
-Without a Facade, the web controller would need to inject 5 different repositories and services, introducing high coupling and fragile error handling. `RideBookingFacade` encapsulates all 6 steps behind `bookRide(CreateBookingRequest)`, providing high cohesion and low coupling.
+5. Payment processor authorization via Adapter Pattern (UPI, Card, Mock)
+6. Booking and Payment documents persistence in MongoDB
+7. Notification dispatch via Observer Pattern to Passenger and Driver
+Without a Facade, the web controller would need to inject 6 different repositories and services, introducing high coupling and fragile error handling. `RideBookingFacade` encapsulates all steps behind `bookRide(CreateBookingRequest)`, providing high cohesion and low coupling.
 
 ---
 
@@ -116,13 +117,14 @@ Passwords are never stored in plaintext. In `UserServiceImpl`, incoming password
 
 ### Q13. How do you know your application works reliably? What is your test coverage?
 **Answer:**
-We built a suite of **44 automated JUnit 5 tests** across unit, pattern, repository, and controller layers:
+We built a suite of **53 automated JUnit 5 tests** across unit, pattern, repository, and controller layers:
 - `UserFactoryTests`: Verifies correct polymorphic user instantiation.
 - `PricingStrategyTests`: Verifies 1.0x, 1.5x surge, and 0.8x discount calculations.
-- `RideBuilderTests`: Validates mandatory attributes and immutability.
-- `BookingFacadeTests`: Verifies end-to-end 6-step coordination and seat decrement.
+- `RideBuilderTests`: Validates mandatory attributes and immutability for both `RideBuilder` and `Ride.Builder`.
+- `BookingFacadeTests`: Verifies end-to-end coordination with Payment Adapters, seat decrement, payment failure rollback, and cancellation.
+- `SecurityAuthorizationTests`: Verifies role-based authorization for Passenger, Driver, and Admin access.
 - `RideStateTests`: Validates legal forward transitions and illegal transition exceptions.
 - `RideObserverTests`: Confirms passenger, driver, and admin alert dispatches.
 - `PaymentAdapterTests`: Tests UPI, Card, and Mock gateway translations.
 - `SingletonPatternTests`: Runs 50 concurrent worker threads verifying identical instance identity, reflection defense, and serialization preservation.
-All 44 tests pass with `0 failures, 0 errors` in `mvn clean test`.
+All 53 tests pass with `0 failures, 0 errors` in `mvn clean test`.

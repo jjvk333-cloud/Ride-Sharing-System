@@ -100,7 +100,8 @@ public class DataSeeder implements CommandLineRunner {
             String tomorrow = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_DATE);
             String dayAfter = LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_DATE);
 
-            Ride ride1 = new Ride.Builder()
+            com.velto.pattern.builder.RideBuilder b1 = new com.velto.pattern.builder.RideBuilder();
+            Ride ride1 = b1
                     .driverId(driver1.getId())
                     .driverName(driver1.getName())
                     .pickup("Pune Railway Station")
@@ -113,7 +114,8 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             rideRepository.save(ride1);
 
-            Ride ride2 = new Ride.Builder()
+            com.velto.pattern.builder.RideBuilder b2 = new com.velto.pattern.builder.RideBuilder();
+            Ride ride2 = b2
                     .driverId(driver2.getId())
                     .driverName(driver2.getName())
                     .pickup("Kothrud Depot")
@@ -126,7 +128,8 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             rideRepository.save(ride2);
 
-            Ride ride3 = new Ride.Builder()
+            com.velto.pattern.builder.RideBuilder b3 = new com.velto.pattern.builder.RideBuilder();
+            Ride ride3 = b3
                     .driverId(driver1.getId())
                     .driverName(driver1.getName())
                     .pickup("Baner High Street")

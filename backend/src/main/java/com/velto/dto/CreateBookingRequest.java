@@ -17,6 +17,13 @@ public class CreateBookingRequest {
 
     private PricingType pricingType = PricingType.STANDARD;
 
+    // Payment Adapter parameters
+    private String paymentMethod = "MOCK";
+    private String upiId;
+    private String cardNumber;
+    private String expiryDate;
+    private String cvv;
+
     public CreateBookingRequest() {
     }
 
@@ -25,6 +32,15 @@ public class CreateBookingRequest {
         this.passengerId = passengerId;
         this.seats = seats;
         this.pricingType = pricingType != null ? pricingType : PricingType.STANDARD;
+        this.paymentMethod = "MOCK";
+    }
+
+    public CreateBookingRequest(String rideId, String passengerId, int seats, PricingType pricingType, String paymentMethod) {
+        this.rideId = rideId;
+        this.passengerId = passengerId;
+        this.seats = seats;
+        this.pricingType = pricingType != null ? pricingType : PricingType.STANDARD;
+        this.paymentMethod = paymentMethod != null ? paymentMethod : "MOCK";
     }
 
     public String getRideId() {
@@ -57,5 +73,45 @@ public class CreateBookingRequest {
 
     public void setPricingType(PricingType pricingType) {
         this.pricingType = pricingType;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getUpiId() {
+        return upiId;
+    }
+
+    public void setUpiId(String upiId) {
+        this.upiId = upiId;
+    }
+
+    public String getCardNumber() {
+        return cardNumber;
+    }
+
+    public void setCardNumber(String cardNumber) {
+        this.cardNumber = cardNumber;
+    }
+
+    public String getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
+    public String getCvv() {
+        return cvv;
+    }
+
+    public void setCvv(String cvv) {
+        this.cvv = cvv;
     }
 }

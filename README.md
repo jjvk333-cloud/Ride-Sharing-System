@@ -5,7 +5,7 @@
 [![MongoDB Community 8.x](https://img.shields.io/badge/MongoDB-Community%20Server-green.svg)](https://www.mongodb.com/)
 [![Maven 3.9+](https://img.shields.io/badge/Build-Maven%203.9-blue.svg)](https://maven.apache.org/)
 [![Bootstrap 5.3](https://img.shields.io/badge/Frontend-Bootstrap%205.3-purple.svg)](https://getbootstrap.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-44%20Passed-success.svg)](#automated-testing)
+[![Tests Passing](https://img.shields.io/badge/Tests-53%20Passed-success.svg)](#automated-testing)
 
 **VELTO** is an enterprise-grade, full-stack ride sharing platform engineered for campus and metropolitan commuter ecosystems. Built with **Java 17**, **Spring Boot 3.3.4**, **MongoDB**, and a responsive **HTML5/Bootstrap 5** frontend, VELTO demonstrates **8 Gang of Four (GoF) Design Patterns** solving real-world transportation challenges.
 
@@ -39,8 +39,8 @@
 |---|---|---|---|
 | **1. Factory Method** | Creational | `com.velto.pattern.factory` | Polymorphic instantiation of `Passenger`, `Driver`, and `Admin` user types. |
 | **2. Strategy** | Behavioral | `com.velto.pattern.strategy` | Dynamic pricing calculation (Standard, Peak Surge 1.5x, Shared Discount 0.8x). |
-| **3. Builder** | Creational | `com.velto.pattern.builder` | Fluent construction and invariant validation of complex `Ride` documents. |
-| **4. Facade** | Structural | `com.velto.pattern.facade` | Atomic orchestration of the 6-step ride booking and seat-decrement transaction. |
+| **3. Builder** | Creational | `com.velto.pattern.builder` | Fluent construction and invariant validation of complex `Ride` documents via `RideBuilder`. |
+| **4. Facade** | Structural | `com.velto.pattern.facade` | Atomic orchestration of ride booking, Strategy pricing, Payment Adapter settlement, and Observer alerts. |
 | **5. State** | Behavioral | `com.velto.pattern.state` | Managing the 7-phase ride lifecycle finite state machine and blocking illegal transitions. |
 | **6. Observer** | Behavioral | `com.velto.pattern.observer` | Real-time decoupled notification broadcasting to passengers, drivers, and admins. |
 | **7. Adapter** | Structural | `com.velto.pattern.adapter` | Unified payment interface adapting UPI VPA, 16-digit Card, and Cash counter APIs. |
@@ -81,7 +81,7 @@ Open: `http://localhost:3000`
 ---
 
 ## 🧪 Automated Testing
-Run the complete test suite containing **44 automated tests**:
+Run the complete test suite containing **53 automated tests**:
 ```bash
 cd backend
 mvn clean test
@@ -90,8 +90,9 @@ mvn clean test
 ### Test Suite Summary
 - `UserFactoryTests`: Factory Method polymorphic instantiation.
 - `PricingStrategyTests`: Dynamic strategy pricing calculations.
-- `RideBuilderTests`: Builder pattern mandatory parameter validation.
-- `BookingFacadeTests`: 6-step facade reservation coordination.
+- `RideBuilderTests`: Standalone `RideBuilder` and `Ride.Builder` parameter validations.
+- `BookingFacadeTests`: End-to-end facade coordination with Payment Adapters, seat reservation, rollback, and cancellation.
+- `SecurityAuthorizationTests`: Role-based access control guarding Passenger, Driver, and Admin operations.
 - `RideStateTests`: Lifecycle forward transitions and illegal transition rejection.
 - `RideObserverTests`: Multi-actor alert broadcasting.
 - `PaymentAdapterTests`: UPI, Card, and Cash adapter translations.

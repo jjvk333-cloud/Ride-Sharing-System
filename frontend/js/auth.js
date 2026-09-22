@@ -28,5 +28,10 @@ const Auth = {
   getRole() {
     const user = this.getUser();
     return user ? user.role : null;
+  },
+
+  getToken() {
+    const user = this.getUser();
+    return user ? user.token : null;
   }
 };

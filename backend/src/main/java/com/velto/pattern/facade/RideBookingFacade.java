@@ -3,31 +3,44 @@ package com.velto.pattern.facade;
 import com.velto.dto.BookingResponse;
 import com.velto.dto.CreateBookingRequest;
 import com.velto.exception.BookingException;
+import com.velto.exception.PaymentException;
 import com.velto.exception.RideNotFoundException;
 import com.velto.exception.UserNotFoundException;
 import com.velto.model.*;
+import com.velto.pattern.adapter.PaymentProcessor;
+import com.velto.pattern.adapter.PaymentProcessorFactory;
+import com.velto.pattern.adapter.PaymentRequest;
+import com.velto.pattern.adapter.PaymentResponse;
+import com.velto.pattern.observer.RideEvent;
+import com.velto.pattern.observer.RideEventSubject;
 import com.velto.pattern.strategy.PricingContext;
 import com.velto.repository.BookingRepository;
+import com.velto.repository.NotificationRepository;
+import com.velto.repository.PaymentRepository;
 import com.velto.repository.RideRepository;
 import com.velto.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 /**
  * =========================================================================
- * DESIGN PATTERN 4 — FACADE PATTERN
+ * DESIGN PATTERN 4 — FACADE PATTERN (Structural)
  * =========================================================================
- * The RideBookingFacade coordinates the complex booking subsystem:
- * 1. User/Passenger Verification
- * 2. Ride Existence & Status Validation
- * 3. Seat Availability Verification & Atomic Seat Decrement
- * 4. Dynamic Pricing Strategy Execution
- * 5. Mock Payment Processing
- * 6. Booking Document Creation & Persistence
- * 7. Booking Cancellation & Seat Restoration Subsystem
+ * The RideBookingFacade is the master orchestration subsystem for VELTO:
+ * 1. User & Account Verification (Domain Model)
+ * 2. Ride State & Status Invariant Checks (State Pattern)
+ * 3. Atomic Seat Inventory Verification & Reservation
+ * 4. Dynamic Pricing Calculation (Strategy Pattern)
+ * 5. Payment Processing via Gateway Adapters (Adapter Pattern)
+ * 6. Booking Document Persistence (MongoDB)
+ * 7. Multi-Actor Notification Broadcasting (Observer Pattern)
+ * 8. Booking Cancellation & Seat Restoration Subsystem
  *
- * Clients (Controllers/Frontend) communicate with simple single methods.
+ * Clients (Controllers and Frontend) invoke simple, unified methods without
+ * directly coupling to the underlying payment gateways, strategies, or repositories.
  */
 @Component
 public class RideBookingFacade {
@@ -37,23 +50,36 @@ public class RideBookingFacade {
     private final UserRepository userRepository;
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
     private final PricingContext pricingContext;
+    private final PaymentProcessorFactory paymentProcessorFactory;
+    private final RideEventSubject rideEventSubject;
+    private final NotificationRepository notificationRepository;
 
     public RideBookingFacade(UserRepository userRepository,
                              RideRepository rideRepository,
                              BookingRepository bookingRepository,
-                             PricingContext pricingContext) {
+                             PaymentRepository paymentRepository,
+                             PricingContext pricingContext,
+                             PaymentProcessorFactory paymentProcessorFactory,
+                             RideEventSubject rideEventSubject,
+                             NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
+        this.paymentRepository = paymentRepository;
         this.pricingContext = pricingContext;
+        this.paymentProcessorFactory = paymentProcessorFactory;
+        this.rideEventSubject = rideEventSubject;
+        this.notificationRepository = notificationRepository;
     }
 
     /**
-     * Facade method coordinating the end-to-end ride booking workflow.
+     * Master Facade method coordinating the end-to-end booking workflow across
+     * Strategy, Adapter, State, and Observer subsystems.
      */
     public BookingResponse bookRide(CreateBookingRequest request) {
-        log.info("RideBookingFacade: Processing booking for passenger '{}' on ride '{}'...",
+        log.info("RideBookingFacade: Commencing atomic booking workflow for passenger '{}' on ride '{}'...",
                 request.getPassengerId(), request.getRideId());
 
         // Step 1: Validate passenger exists
@@ -64,29 +90,51 @@ public class RideBookingFacade {
         Ride ride = rideRepository.findById(request.getRideId())
                 .orElseThrow(() -> new RideNotFoundException("Ride not found with ID: " + request.getRideId()));
 
-        // Step 3: Check ride status
+        // Step 3: Validate ride lifecycle state
         if (ride.getStatus() == RideStatus.COMPLETED || ride.getStatus() == RideStatus.CANCELLED) {
             throw new BookingException("Cannot book a ride that is already " + ride.getStatus());
         }
 
-        // Step 4: Check seat availability
+        // Step 4: Check seat inventory
         if (ride.getAvailableSeats() < request.getSeats()) {
             throw new BookingException("Not enough seats available. Requested: " +
                     request.getSeats() + ", Available: " + ride.getAvailableSeats());
         }
 
-        // Step 5: Execute dynamic pricing calculation via Strategy Pattern
+        // Step 5: Execute dynamic fare calculation via Strategy Pattern
         pricingContext.setStrategyByType(request.getPricingType());
         double totalAmount = pricingContext.calculatePrice(ride.getPrice(), request.getSeats());
+        log.info("RideBookingFacade [Strategy: {}]: Calculated total fare ₹{} for {} seat(s)",
+                pricingContext.getStrategy().getStrategyName(), totalAmount, request.getSeats());
 
-        // Step 6: Process mock payment (Facade integration point)
-        PaymentStatus paymentStatus = PaymentStatus.PAID;
+        // Step 6: Process payment via Adapter Pattern
+        String method = (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank())
+                ? request.getPaymentMethod().toUpperCase()
+                : "MOCK";
+        PaymentProcessor processor = paymentProcessorFactory.getProcessor(method);
 
-        // Step 7: Update ride available seats
+        PaymentRequest paymentRequest = new PaymentRequest(
+                "PENDING-" + ride.getId(),
+                passenger.getId(),
+                totalAmount,
+                method
+        );
+        paymentRequest.setUpiId(request.getUpiId());
+        paymentRequest.setCardNumber(request.getCardNumber());
+        paymentRequest.setExpiryDate(request.getExpiryDate());
+        paymentRequest.setCvv(request.getCvv());
+
+        PaymentResponse paymentResponse = processor.processPayment(paymentRequest);
+        if (!paymentResponse.isSuccess()) {
+            log.error("RideBookingFacade: Payment declined via {} adapter: {}", method, paymentResponse.getMessage());
+            throw new PaymentException("Payment failed via " + method + " adapter: " + paymentResponse.getMessage());
+        }
+
+        // Step 7: Update available seats atomically
         ride.setAvailableSeats(ride.getAvailableSeats() - request.getSeats());
         rideRepository.save(ride);
 
-        // Step 8: Create and persist booking record
+        // Step 8: Persist Booking record
         Booking booking = new Booking(
                 ride.getId(),
                 passenger.getId(),
@@ -94,14 +142,51 @@ public class RideBookingFacade {
                 request.getSeats(),
                 totalAmount,
                 request.getPricingType(),
-                paymentStatus,
+                PaymentStatus.PAID,
                 BookingStatus.CONFIRMED
         );
         Booking savedBooking = bookingRepository.save(booking);
 
-        log.info("RideBookingFacade: Booking confirmed successfully! Booking ID: {}", savedBooking.getId());
+        // Step 9: Persist reconciled Payment document
+        Payment payment = new Payment();
+        payment.setBookingId(savedBooking.getId());
+        payment.setPassengerId(passenger.getId());
+        payment.setAmount(totalAmount);
+        payment.setPaymentMethod(method);
+        payment.setPaymentStatus(PaymentStatus.PAID);
+        payment.setTransactionId(paymentResponse.getTransactionId());
+        payment.setGatewayReference(paymentResponse.getGatewayReference());
+        payment.setMessage(paymentResponse.getMessage());
+        payment.setCompletedAt(LocalDateTime.now());
+        paymentRepository.save(payment);
 
-        // Step 9: Return clean unified response
+        log.info("RideBookingFacade: Booking #{} confirmed and Payment #{} recorded.",
+                savedBooking.getId(), payment.getTransactionId());
+
+        // Step 10: Dispatch Observer Pattern notifications to Passenger and Driver
+        try {
+            Notification passNotif = new Notification(
+                    passenger.getId(),
+                    String.format("Booking Confirmed: Your ride from '%s' to '%s' is confirmed. Fare: ₹%.2f (%s)",
+                            ride.getPickup(), ride.getDestination(), totalAmount, method),
+                    "BOOKING_CONFIRMED"
+            );
+            notificationRepository.save(passNotif);
+
+            if (ride.getDriverId() != null) {
+                Notification driverNotif = new Notification(
+                        ride.getDriverId(),
+                        String.format("New Passenger Booked: %s booked %d seat(s) on your ride to %s.",
+                                passenger.getName(), request.getSeats(), ride.getDestination()),
+                        "RIDE_BOOKING_UPDATE"
+                );
+                notificationRepository.save(driverNotif);
+            }
+        } catch (Exception e) {
+            log.warn("RideBookingFacade: Non-fatal notification error: {}", e.getMessage());
+        }
+
+        // Step 11: Return unified response
         return new BookingResponse(
                 savedBooking.getId(),
                 ride.getId(),
@@ -117,14 +202,14 @@ public class RideBookingFacade {
                 savedBooking.getPaymentStatus(),
                 savedBooking.getBookingStatus(),
                 savedBooking.getCreatedAt(),
-                "Ride booked and confirmed successfully!"
+                "Ride booked and payment settled via " + method + " adapter successfully!"
         );
     }
 
     /**
      * Facade method coordinating booking cancellation:
-     * Restores seats to the ride, updates booking status to CANCELLED,
-     * and sets payment status to REFUNDED if applicable.
+     * Restores seats to the ride, marks booking status as CANCELLED,
+     * updates payment status to REFUNDED, and broadcasts alerts to all observers.
      */
     public Booking cancelBooking(String bookingId) {
         log.info("RideBookingFacade: Processing cancellation for booking '{}'...", bookingId);
@@ -135,20 +220,41 @@ public class RideBookingFacade {
             throw new BookingException("Booking is already cancelled.");
         }
 
-        // Restore seats to the ride
+        // Restore seat inventory
         rideRepository.findById(booking.getRideId()).ifPresent(ride -> {
             ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeats());
             rideRepository.save(ride);
-            log.info("Restored {} seats to ride '{}'. New available seats: {}",
+            log.info("Restored {} seat(s) to ride '{}'. Current available seats: {}",
                     booking.getSeats(), ride.getId(), ride.getAvailableSeats());
+
+            // Observer notification to driver
+            if (ride.getDriverId() != null) {
+                Notification driverAlert = new Notification(
+                        ride.getDriverId(),
+                        String.format("Passenger Cancellation: %s cancelled %d seat(s) on ride to %s.",
+                                booking.getPassengerName(), booking.getSeats(), ride.getDestination()),
+                        "BOOKING_CANCELLED"
+                );
+                notificationRepository.save(driverAlert);
+            }
         });
 
-        // Mark cancelled
+        // Mark booking cancelled and refunded
         booking.setBookingStatus(BookingStatus.CANCELLED);
         if (booking.getPaymentStatus() == PaymentStatus.PAID) {
             booking.setPaymentStatus(PaymentStatus.REFUNDED);
         }
 
-        return bookingRepository.save(booking);
+        Booking updated = bookingRepository.save(booking);
+
+        // Observer notification to passenger
+        Notification passengerAlert = new Notification(
+                booking.getPassengerId(),
+                "Your booking has been cancelled and refund processed.",
+                "BOOKING_REFUNDED"
+        );
+        notificationRepository.save(passengerAlert);
+
+        return updated;
     }
 }

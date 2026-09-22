@@ -2,6 +2,7 @@ package com.velto.pattern;
 
 import com.velto.model.Ride;
 import com.velto.model.RideStatus;
+import com.velto.pattern.builder.RideBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +42,35 @@ class RideBuilderTests {
         assertEquals("AC, Music", ride.getPreferences());
         assertEquals(RideStatus.REQUESTED, ride.getStatus());
         assertNotNull(ride.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("com.velto.pattern.builder.RideBuilder successfully constructs valid Ride entity")
+    void testStandaloneRideBuilder() {
+        Ride ride = new RideBuilder()
+                .driverId("driver-456")
+                .driverName("Anita Driver")
+                .pickup("Shivajinagar, Pune")
+                .destination("Hinjewadi, Pune")
+                .date("2026-10-01")
+                .time("09:15 AM")
+                .seats(3)
+                .availableSeats(3)
+                .vehicleType("SUV")
+                .price(300.0)
+                .preferences("Non-Smoking")
+                .status(RideStatus.REQUESTED)
+                .build();
+
+        assertNotNull(ride);
+        assertEquals("driver-456", ride.getDriverId());
+        assertEquals("Anita Driver", ride.getDriverName());
+        assertEquals("Shivajinagar, Pune", ride.getPickup());
+        assertEquals("Hinjewadi, Pune", ride.getDestination());
+        assertEquals(3, ride.getSeats());
+        assertEquals(3, ride.getAvailableSeats());
+        assertEquals("SUV", ride.getVehicleType());
+        assertEquals(300.0, ride.getPrice());
     }
 
     @Test
@@ -89,6 +119,18 @@ class RideBuilderTests {
                         .time("09:00")
                         .seats(2)
                         .price(-50.0)
+                        .build()
+        );
+
+        // Standalone RideBuilder validation check
+        assertThrows(IllegalStateException.class, () ->
+                new RideBuilder()
+                        .pickup("MG Road")
+                        .destination("")
+                        .date("2026-09-20")
+                        .time("09:00")
+                        .seats(2)
+                        .price(100.0)
                         .build()
         );
     }

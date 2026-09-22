@@ -13,6 +13,10 @@ const API = {
       ...(options.headers || {})
     };
 
+    if (typeof Auth !== 'undefined' && Auth.getToken && Auth.getToken()) {
+      headers['Authorization'] = `Basic ${Auth.getToken()}`;
+    }
+
     try {
       const response = await fetch(url, { ...options, headers });
       const data = await response.json().catch(() => null);

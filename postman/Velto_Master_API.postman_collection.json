@@ -146,13 +146,13 @@
       "name": "5. Ride Booking (Facade Pattern)",
       "item": [
         {
-          "name": "Book Ride via Facade",
+          "name": "Book Ride via Facade (with Payment Adapter)",
           "request": {
             "method": "POST",
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"rideId\": \"{{rideId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"seats\": 2,\n  \"pricingType\": \"STANDARD\"\n}"
+              "raw": "{\n  \"rideId\": \"{{rideId}}\",\n  \"passengerId\": \"{{passengerId}}\",\n  \"seats\": 2,\n  \"pricingType\": \"STANDARD\",\n  \"paymentMethod\": \"MOCK\"\n}"
             },
             "url": "http://localhost:8080/api/bookings"
           }

@@ -116,10 +116,10 @@ classDiagram
 ## Pattern 3: Builder Pattern
 
 ### 1. Problem
-A `Ride` domain document has numerous required fields (driverId, driverName, pickup, destination, date, time, availableSeats, price) and optional fields (status, vehicleType, notes). Relying on multi-argument constructors leads to the **Telescoping Constructor Anti-Pattern**, error-prone parameter ordering, and accidental invalid objects.
+A `Ride` domain document has numerous required fields (driverId, driverName, pickup, destination, date, time, availableSeats, price) and optional fields (status, vehicleType, preferences). Relying on multi-argument constructors leads to the **Telescoping Constructor Anti-Pattern**, error-prone parameter ordering, and accidental invalid objects.
 
 ### 2. Solution & UML
-A nested static `Ride.Builder` class provides a fluent, step-by-step method-chaining construction pipeline with mandatory parameter validation enforced before `build()` yields the immutable `Ride` instance.
+A dedicated `RideBuilder` class located in `com.velto.pattern.builder` provides a fluent, step-by-step method-chaining construction pipeline with mandatory parameter validation enforced before `build()` yields the verified `Ride` document.
 
 ```mermaid
 classDiagram
@@ -131,33 +131,38 @@ classDiagram
         -String destination
         -String date
         -String time
+        -int seats
         -int availableSeats
+        -String vehicleType
         -double price
         -RideStatus status
-        -Ride(Builder b)
     }
-    class Builder {
+    class RideBuilder {
         -String driverId
         -String driverName
         -String pickup
         -String destination
         -String date
         -String time
+        -int seats
         -int availableSeats
+        -String vehicleType
         -double price
         -RideStatus status
-        +driverId(String id) Builder
-        +driverName(String name) Builder
-        +pickup(String p) Builder
-        +destination(String d) Builder
-        +date(String d) Builder
-        +time(String t) Builder
-        +seats(int s) Builder
-        +price(double p) Builder
-        +status(RideStatus s) Builder
+        +driverId(String id) RideBuilder
+        +driverName(String name) RideBuilder
+        +pickup(String p) RideBuilder
+        +destination(String d) RideBuilder
+        +date(String d) RideBuilder
+        +time(String t) RideBuilder
+        +seats(int s) RideBuilder
+        +availableSeats(int s) RideBuilder
+        +vehicleType(String vt) RideBuilder
+        +price(double p) RideBuilder
+        +status(RideStatus s) RideBuilder
         +build() Ride
     }
-    Ride +-- Builder
+    RideBuilder ..> Ride : constructs
 ```
 
 ---
@@ -165,17 +170,19 @@ classDiagram
 ## Pattern 4: Facade Pattern
 
 ### 1. Problem
-Booking a ride is not a simple database insert. It touches six distinct subsystems:
-1. Validating passenger existence and account status.
-2. Validating ride existence and confirming it is active.
+Booking a ride is not a simple database insert. It touches multiple subsystems:
+1. Validating passenger existence and account status (`UserRepository`).
+2. Validating ride existence and active lifecycle state (`RideRepository` & State Pattern).
 3. Checking available seat inventory and atomically decrementing seats.
-4. Executing dynamic pricing calculation via Strategy Pattern.
-5. Processing payment through payment processor subsystem.
-6. Persisting the booking record and generating confirmation receipts.
-Exposing these six interactions to the web controller creates high coupling and risk of partial failure.
+4. Executing dynamic fare pricing calculation via Strategy Pattern (`PricingContext`).
+5. Processing and settling payment through the Payment Gateway Adapter subsystem (`PaymentProcessorFactory` -> UPI/Card/Mock Adapters).
+6. Persisting the reconciled `Payment` document in MongoDB (`PaymentRepository`).
+7. Persisting the `Booking` document in MongoDB (`BookingRepository`).
+8. Dispatching multi-actor notifications via Observer Pattern (`NotificationRepository` & `RideEventSubject`).
+Exposing these interactions directly to controllers introduces tight coupling and risk of partial failure.
 
 ### 2. Solution & UML
-`RideBookingFacade` exposes unified, high-level methods: `bookRide(CreateBookingRequest)` and `cancelBooking(String bookingId)`. Controllers interact solely with this single facade.
+`RideBookingFacade` coordinates the entire end-to-end booking transaction and cancellation workflow. Controllers and clients interact solely with this single facade.
 
 ```mermaid
 sequenceDiagram
@@ -185,7 +192,10 @@ sequenceDiagram
     participant UserRepo as UserRepository
     participant RideRepo as RideRepository
     participant PricingCtx as PricingContext
+    participant PayAdapter as PaymentProcessor (Adapter)
+    participant PayRepo as PaymentRepository
     participant BookRepo as BookingRepository
+    participant Observer as Observers / NotifRepo
 
     Client->>Facade: bookRide(request)
     Facade->>UserRepo: findById(passengerId)
@@ -194,10 +204,13 @@ sequenceDiagram
     RideRepo-->>Facade: Ride exists & active
     Facade->>Facade: Verify availableSeats >= requestedSeats
     Facade->>PricingCtx: calculatePrice(basePrice, seats)
-    PricingCtx-->>Facade: finalPrice
+    PricingCtx-->>Facade: finalPrice (Strategy)
+    Facade->>PayAdapter: processPayment(paymentRequest)
+    PayAdapter-->>Facade: PaymentResponse(success=true, txnId)
     Facade->>RideRepo: save(ride with decremented seats)
     Facade->>BookRepo: save(new Booking)
-    BookRepo-->>Facade: savedBooking
+    Facade->>PayRepo: save(new Payment)
+    Facade->>Observer: broadcast notifications (Passenger & Driver)
     Facade-->>Client: BookingResponse (201 Created)
 ```
 

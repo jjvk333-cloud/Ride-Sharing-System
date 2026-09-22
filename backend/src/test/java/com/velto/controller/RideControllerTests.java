@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -37,6 +38,7 @@ class RideControllerTests {
     }
 
     @Test
+    @WithMockUser(username = "driver", roles = {"DRIVER"})
     @DisplayName("POST /api/rides creates ride using Builder and returns 201 Created")
     void testCreateRide() throws Exception {
         CreateRideRequest request = new CreateRideRequest(
@@ -55,6 +57,7 @@ class RideControllerTests {
     }
 
     @Test
+    @WithMockUser(username = "driver", roles = {"DRIVER"})
     @DisplayName("GET /api/rides returns available rides and supports search query")
     void testSearchRides() throws Exception {
         CreateRideRequest r1 = new CreateRideRequest("drv-1", "Driver A", "Indiranagar", "Airport", "2026-09-25", "06:00", 4, "SUV", 600.0, "Luggage");
@@ -71,6 +74,7 @@ class RideControllerTests {
     }
 
     @Test
+    @WithMockUser(username = "driver", roles = {"DRIVER"})
     @DisplayName("GET /api/rides/{id} returns ride details or 404 if not found")
     void testGetRideById() throws Exception {
         CreateRideRequest request = new CreateRideRequest("drv-1", "Driver A", "Indiranagar", "Airport", "2026-09-25", "06:00", 4, "SUV", 600.0, "Luggage");
