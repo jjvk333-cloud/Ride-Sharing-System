@@ -705,32 +705,42 @@ async function loadPassengerBookings() {
       return;
     }
 
-    tbody.innerHTML = bookings.map(b => `
+    tbody.innerHTML = bookings.map(b => {
+      const bId = b.id || b.bookingId;
+      const passName = b.passengerName || user.name;
+      const bSeats = b.seats || b.seatsBooked || 1;
+      const bAmt = b.amount || b.amountPaid || 0;
+      const bStatus = b.bookingStatus || 'CONFIRMED';
+      const pStatus = b.paymentStatus || 'PAID';
+      const bPickup = b.pickup || (allRides.find(r => r.id === b.rideId) || {}).pickup || '';
+      const bDest = b.destination || (allRides.find(r => r.id === b.rideId) || {}).destination || '';
+
+      return `
       <tr>
-        <td><code>${b.id.substring(0, 8)}...</code></td>
-        <td><strong>${b.rideId.substring(0, 8)}...</strong></td>
-        <td><small>${new Date(b.createdAt).toLocaleDateString()}</small></td>
-        <td><span class="badge bg-light text-dark">${b.seats} seat(s)</span></td>
-        <td><strong>₹${b.amount.toFixed(2)}</strong></td>
-        <td><span class="badge badge-status-${b.bookingStatus}">${b.bookingStatus}</span></td>
-        <td><span class="badge badge-${b.paymentStatus.toLowerCase()}">${b.paymentStatus}</span></td>
+        <td><code>${bId.substring(0, 8)}...</code></td>
+        <td><strong>${(b.rideId || '').substring(0, 8)}...</strong></td>
+        <td><small>${new Date(b.createdAt || Date.now()).toLocaleDateString()}</small></td>
+        <td><span class="badge bg-light text-dark">${bSeats} seat(s)</span></td>
+        <td><strong>₹${bAmt.toFixed(2)}</strong></td>
+        <td><span class="badge badge-status-${bStatus}">${bStatus}</span></td>
+        <td><span class="badge badge-${pStatus.toLowerCase()}">${pStatus}</span></td>
         <td>
           <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-info" onclick="trackBookingLive('${b.id}')" title="Track Live Status">
+            <button class="btn btn-outline-info" onclick="trackBookingLive('${bId}')" title="Track Live Status">
               <i class="bi bi-geo-alt-fill"></i> Track
             </button>
-            <button class="btn btn-outline-primary" onclick="openBoardingPass('${b.id}', '${b.passengerName || user.name}', '${b.seats}', ${b.amount}, '${b.bookingStatus}', '${b.paymentStatus}', '${(allRides.find(r=>r.id===b.rideId)||{}).pickup||''}', '${(allRides.find(r=>r.id===b.rideId)||{}).destination||''}')">
+            <button class="btn btn-outline-primary" onclick="openBoardingPass('${bId}', '${encodeURIComponent(passName)}', '${bSeats}', ${bAmt}, '${bStatus}', '${pStatus}', '${encodeURIComponent(bPickup)}', '${encodeURIComponent(bDest)}')">
               <i class="bi bi-qr-code"></i> Ticket
             </button>
-            ${b.paymentStatus !== 'PAID' ? `<button class="btn btn-outline-success" onclick="openPaymentModal('${b.id}', ${b.amount})">Pay</button>` : `<span class="badge bg-success px-2 py-1">Paid</span>`}
-            ${b.bookingStatus !== 'CANCELLED' ? `
-              <button class="btn btn-outline-danger" onclick="cancelBooking('${b.id}')">
+            ${pStatus !== 'PAID' ? `<button class="btn btn-outline-success" onclick="openPaymentModal('${bId}', ${bAmt})">Pay</button>` : `<span class="badge bg-success px-2 py-1">Paid</span>`}
+            ${bStatus !== 'CANCELLED' ? `
+              <button class="btn btn-outline-danger" onclick="cancelBooking('${bId}')">
                 Cancel
               </button>` : ''}
           </div>
         </td>
       </tr>
-    `).join('');
+    `;}).join('');
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" class="text-danger py-3">Error: ${err.message}</td></tr>`;
   }
@@ -739,11 +749,15 @@ async function loadPassengerBookings() {
 // ==========================================
 // PRINTABLE QR BOARDING PASS
 // ==========================================
-function openBoardingPass(bookingId, passengerName, seats, amount, bookingStatus, paymentStatus, pickup, destination) {
-  document.getElementById('ticket-booking-id').textContent = `#BK-${bookingId.substring(0, 8).toUpperCase()}`;
+function openBoardingPass(bookingId, rawPassengerName, seats, amount, bookingStatus, paymentStatus, rawPickup, rawDestination) {
+  const passengerName = decodeURIComponent(rawPassengerName || 'Passenger');
+  const pickup = decodeURIComponent(rawPickup || 'Pune Pickup');
+  const destination = decodeURIComponent(rawDestination || 'Pune Destination');
+
+  document.getElementById('ticket-booking-id').textContent = `#BK-${(bookingId || '').substring(0, 8).toUpperCase()}`;
   document.getElementById('ticket-passenger').textContent = passengerName;
   document.getElementById('ticket-seats').textContent = `${seats} Seat(s)`;
-  document.getElementById('ticket-fare').textContent = `₹${parseFloat(amount).toFixed(2)}`;
+  document.getElementById('ticket-fare').textContent = `₹${parseFloat(amount || 0).toFixed(2)}`;
   document.getElementById('ticket-payment-status').textContent = paymentStatus;
   if (pickup) document.getElementById('ticket-from').textContent = pickup;
   if (destination) document.getElementById('ticket-to').textContent = destination;
@@ -1170,6 +1184,19 @@ const RIDE_STATES_ORDER = [
 async function trackBookingLive(bookingId) {
   try {
     const booking = await API.bookings.getById(bookingId);
+    if ((!booking.pickup || !booking.destination) && booking.rideId) {
+      try {
+        const ride = await API.rides.getById(booking.rideId);
+        if (ride) {
+          booking.pickup = ride.pickup;
+          booking.destination = ride.destination;
+          booking.driverName = ride.driverName;
+          booking.vehicleType = ride.vehicleType;
+          booking.status = ride.status;
+          booking.distance = ride.distance;
+        }
+      } catch (ignore) {}
+    }
     currentTrackingBooking = booking;
     showView('tracking');
     updateTrackingUI(booking);
