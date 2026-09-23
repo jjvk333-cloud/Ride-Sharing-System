@@ -204,23 +204,6 @@ function updateAuthUI() {
   }
 }
 
-// Quick 1-Click Demo Login
-async function quickLogin(email, password) {
-  try {
-    const user = await API.auth.login(email, password);
-    Auth.setUser(user);
-    updateAuthUI();
-    showToast(`Logged in as ${user.name} (${user.role})!`, 'success');
-
-    // Auto-navigate to role dashboard
-    if (user.role === 'ADMIN') showView('admin');
-    else if (user.role === 'DRIVER') showView('driver');
-    else showView('passenger');
-  } catch (err) {
-    showToast(`Login failed: ${err.message}`, 'danger');
-  }
-}
-
 // Clear and show in-modal error alerts
 function showAuthError(formType, message) {
   const alertId = formType === 'login' ? 'login-error-alert' : 'register-error-alert';
@@ -258,6 +241,24 @@ function closeAuthModal() {
     document.body.style.removeProperty('padding-right');
     document.body.style.removeProperty('overflow');
   }, 350);
+}
+
+// Quick 1-Click Demo Login
+async function quickLogin(email, password) {
+  try {
+    const user = await API.auth.login(email, password);
+    Auth.setUser(user);
+    updateAuthUI();
+    closeAuthModal();
+    showToast(`Logged in as ${user.name} (${user.role})!`, 'success');
+
+    // Auto-navigate to role dashboard
+    if (user.role === 'ADMIN') showView('admin');
+    else if (user.role === 'DRIVER') showView('driver');
+    else showView('passenger');
+  } catch (err) {
+    showToast(`Login failed: ${err.message}`, 'danger');
+  }
 }
 
 // Manual Login Form
@@ -364,14 +365,20 @@ function setAuthTab(tab) {
     loginTab.classList.remove('active');
     formRegister.classList.remove('d-none');
     formLogin.classList.add('d-none');
+    toggleDriverFields();
   }
 }
 
 function toggleDriverFields() {
-  const role = document.getElementById('reg-role').value;
+  const role = document.getElementById('reg-role')?.value || 'PASSENGER';
   const fields = document.getElementById('driver-reg-fields');
-  if (role === 'DRIVER') fields.classList.remove('d-none');
-  else fields.classList.add('d-none');
+  if (fields) {
+    if (role === 'DRIVER') {
+      fields.classList.remove('d-none');
+    } else {
+      fields.classList.add('d-none');
+    }
+  }
 }
 
 // Vehicle filter handler
@@ -1046,32 +1053,78 @@ async function cancelBooking(bookingId) {
 // ==========================================
 // PAYMENTS (Adapter Pattern)
 // ==========================================
+function clearPaymentErrors() {
+  const alertEl = document.getElementById('payment-error-alert');
+  if (alertEl) {
+    alertEl.textContent = '';
+    alertEl.classList.add('d-none');
+  }
+}
+
+function showPaymentError(msg) {
+  const alertEl = document.getElementById('payment-error-alert');
+  if (alertEl) {
+    alertEl.textContent = msg;
+    alertEl.classList.remove('d-none');
+  }
+}
+
 function openPaymentModal(bookingId, amount) {
+  clearPaymentErrors();
+  const numAmount = Math.max(parseFloat(amount) || 50.0, 1.0);
+
   document.getElementById('pay-booking-id').value = bookingId;
-  document.getElementById('pay-amount').value = amount;
-  document.getElementById('pay-display-booking-id').textContent = bookingId.substring(0, 8) + '...';
-  document.getElementById('pay-display-amount').textContent = `₹${amount.toFixed(2)}`;
+  document.getElementById('pay-amount').value = numAmount;
+  document.getElementById('pay-display-booking-id').textContent = bookingId ? (bookingId.substring(0, 8) + '...') : 'N/A';
+  document.getElementById('pay-display-amount').textContent = `₹${numAmount.toFixed(2)}`;
+
+  // Prepopulate test data if empty
+  const user = Auth.getUser();
+  const upiInput = document.getElementById('pay-upiId');
+  if (upiInput && (!upiInput.value || upiInput.value.trim() === '')) {
+    upiInput.value = user && user.email ? `${user.email.split('@')[0]}@okaxis` : 'passenger@okaxis';
+  }
 
   handlePaymentMethodChange();
-  new bootstrap.Modal(document.getElementById('paymentModal')).show();
+  const modalEl = document.getElementById('paymentModal');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
 function handlePaymentMethodChange() {
-  const method = document.getElementById('pay-method').value;
-  document.getElementById('pay-upi-fields').classList.add('d-none');
-  document.getElementById('pay-card-fields').classList.add('d-none');
-  document.getElementById('pay-mock-fields').classList.add('d-none');
+  clearPaymentErrors();
+  const method = document.getElementById('pay-method')?.value || 'UPI';
+  const upiFields = document.getElementById('pay-upi-fields');
+  const cardFields = document.getElementById('pay-card-fields');
+  const mockFields = document.getElementById('pay-mock-fields');
 
-  if (method === 'UPI') document.getElementById('pay-upi-fields').classList.remove('d-none');
-  else if (method === 'CARD') document.getElementById('pay-card-fields').classList.remove('d-none');
-  else document.getElementById('pay-mock-fields').classList.remove('d-none');
+  if (upiFields) upiFields.classList.add('d-none');
+  if (cardFields) cardFields.classList.add('d-none');
+  if (mockFields) mockFields.classList.add('d-none');
+
+  if (method === 'UPI' && upiFields) {
+    upiFields.classList.remove('d-none');
+  } else if (method === 'CARD' && cardFields) {
+    cardFields.classList.remove('d-none');
+  } else if (mockFields) {
+    mockFields.classList.remove('d-none');
+  }
 }
 
 async function submitPayment() {
+  clearPaymentErrors();
   const user = Auth.getUser();
-  const bookingId = document.getElementById('pay-booking-id').value;
-  const amount = parseFloat(document.getElementById('pay-amount').value);
-  const method = document.getElementById('pay-method').value;
+  if (!user || !user.id) {
+    showPaymentError('Session expired. Please log in again.');
+    showToast('Please log in to authorize payment.', 'warning');
+    return;
+  }
+
+  const bookingId = document.getElementById('pay-booking-id')?.value;
+  let amount = parseFloat(document.getElementById('pay-amount')?.value);
+  if (isNaN(amount) || amount <= 0) {
+    amount = 50.0;
+  }
+  const method = document.getElementById('pay-method')?.value || 'MOCK';
 
   const req = {
     bookingId: bookingId,
@@ -1081,25 +1134,50 @@ async function submitPayment() {
   };
 
   if (method === 'UPI') {
-    req.upiId = document.getElementById('pay-upiId').value;
+    const upiId = (document.getElementById('pay-upiId')?.value || '').trim();
+    if (!upiId || !upiId.includes('@')) {
+      showPaymentError('Please enter a valid UPI ID / Virtual Payment Address (e.g. user@okaxis).');
+      return;
+    }
+    req.upiId = upiId;
   } else if (method === 'CARD') {
-    req.cardNumber = document.getElementById('pay-cardNum').value;
-    req.expiryDate = document.getElementById('pay-exp').value;
-    req.cvv = document.getElementById('pay-cvv').value;
+    const cardNum = (document.getElementById('pay-cardNum')?.value || '').replace(/\s+/g, '');
+    const exp = (document.getElementById('pay-exp')?.value || '').trim();
+    const cvv = (document.getElementById('pay-cvv')?.value || '').trim();
+
+    if (!cardNum || cardNum.length < 16) {
+      showPaymentError('Please enter a valid 16-digit card number.');
+      return;
+    }
+    if (!exp || !exp.includes('/')) {
+      showPaymentError('Please enter a valid card expiry date (MM/YY).');
+      return;
+    }
+    if (!cvv || cvv.length < 3) {
+      showPaymentError('Please enter a valid 3 or 4 digit CVV.');
+      return;
+    }
+
+    req.cardNumber = cardNum;
+    req.expiryDate = exp;
+    req.cvv = cvv;
   }
 
   try {
     const payment = await API.payments.process(req);
-    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+    const modalEl = document.getElementById('paymentModal');
+    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
 
-    if (payment.paymentStatus === 'PAID') {
-      showToast(`Payment Successful via ${method} Adapter! Ref: ${payment.gatewayReference}`, 'success');
+    if (payment && payment.paymentStatus === 'PAID') {
+      showToast(`Payment Successful via ${method} Adapter! Ref: ${payment.gatewayReference || payment.transactionId}`, 'success');
     } else {
-      showToast(`Payment Declined: ${payment.message}`, 'danger');
+      showToast(`Payment Status: ${payment ? payment.message : 'Processed'}`, 'warning');
     }
     loadPassengerBookings();
   } catch (err) {
-    showToast(`Payment processing error: ${err.message}`, 'danger');
+    const errMessage = err.message || 'Payment processing failed';
+    showPaymentError(errMessage);
+    showToast(`Payment failed: ${errMessage}`, 'danger');
   }
 }
 
