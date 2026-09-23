@@ -452,14 +452,24 @@
             </div>
           </div>
 
-          <!-- Embedded Leaflet Route Map -->
+          <!-- Embedded Route Map (Google Maps Platform & Leaflet) -->
           <div class="card border-0">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-              <span class="small fw-bold"><i class="bi bi-broadcast me-1 text-danger"></i> Live GPS Navigation & Route Path</span>
-              <span class="badge bg-secondary" id="tracker-eta-badge">ETA: ~18 mins</span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="small fw-bold"><i class="bi bi-broadcast me-1 text-danger"></i> Live GPS Navigation & Route Path</span>
+                <span class="badge bg-primary small" id="tracker-engine-badge">Google Maps</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-light btn-sm active" id="btn-tracker-engine-gmaps" onclick="switchTrackerMapEngine('gmaps')">Google Maps</button>
+                  <button type="button" class="btn btn-outline-light btn-sm" id="btn-tracker-engine-leaflet" onclick="switchTrackerMapEngine('leaflet')">Leaflet</button>
+                </div>
+                <span class="badge bg-secondary" id="tracker-eta-badge">ETA: ~18 mins</span>
+              </div>
             </div>
             <div class="card-body p-0">
-              <div id="tracker-leaflet-map" style="height: 350px; width: 100%;"></div>
+              <div id="tracker-google-map" style="height: 350px; width: 100%; display: block;"></div>
+              <div id="tracker-leaflet-map" style="height: 350px; width: 100%; display: none;"></div>
             </div>
           </div>
         </div>
@@ -849,12 +859,19 @@
 
   </main>
 
-  <!-- MODAL: Leaflet Route Map Preview -->
+  <!-- MODAL: Route Map Preview (Google Maps Platform & Leaflet) -->
   <div class="modal fade" id="routeMapModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-dark text-white">
-          <h5 class="modal-title"><i class="bi bi-map-fill text-warning me-2"></i>Interactive Route Map (Leaflet.js & OpenStreetMap)</h5>
+          <div class="d-flex align-items-center gap-2">
+            <h5 class="modal-title mb-0"><i class="bi bi-map-fill text-warning me-2"></i>Interactive Route Map</h5>
+            <span class="badge bg-primary small" id="route-map-engine-badge">Google Maps Platform</span>
+          </div>
+          <div class="btn-group btn-group-sm ms-auto me-2" role="group">
+            <button type="button" class="btn btn-outline-light active" id="btn-engine-gmaps" onclick="switchRouteMapEngine('gmaps')">Google Maps</button>
+            <button type="button" class="btn btn-outline-light" id="btn-engine-leaflet" onclick="switchRouteMapEngine('leaflet')">Leaflet (Fallback)</button>
+          </div>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body p-3">
@@ -868,9 +885,12 @@
               <strong id="map-dest-name">Destination</strong>
             </div>
           </div>
-          <div id="leaflet-map"></div>
-          <div class="mt-2 text-muted small text-center">
-            <i class="bi bi-info-circle me-1"></i> Free OpenStreetMap data rendered using Leaflet.js (Zero API keys, 100% offline-ready fallback).
+          <!-- Google Maps Container -->
+          <div id="google-map" style="height: 380px; width: 100%; border-radius: 0.5rem; display: block;"></div>
+          <!-- Leaflet Container -->
+          <div id="leaflet-map" style="height: 380px; width: 100%; border-radius: 0.5rem; display: none;"></div>
+          <div class="mt-2 text-muted small text-center" id="route-map-attribution">
+            <i class="bi bi-info-circle me-1"></i> Powered by Google Maps Platform (Demo Key Enabled) with high precision routing.
           </div>
         </div>
         <div class="modal-footer">
@@ -1265,6 +1285,9 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          <div id="login-error-alert" class="alert alert-danger py-2 small d-none" role="alert"></div>
+          <div id="register-error-alert" class="alert alert-danger py-2 small d-none" role="alert"></div>
+
           <!-- Login Form -->
           <form id="form-login" onsubmit="handleLoginForm(event)">
             <div class="mb-3">

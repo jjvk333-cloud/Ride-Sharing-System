@@ -15,6 +15,7 @@ public class AppConfigResponse {
     private boolean maintenanceMode;
     private int maxSeatsPerBooking;
     private int instanceHashCode;
+    private String googleMapsApiKey;
 
     public AppConfigResponse() {}
 
@@ -31,6 +32,7 @@ public class AppConfigResponse {
         response.maintenanceMode = config.isMaintenanceMode();
         response.maxSeatsPerBooking = config.getMaxSeatsPerBooking();
         response.instanceHashCode = System.identityHashCode(config);
+        response.googleMapsApiKey = config.getGoogleMapsApiKey();
         return response;
     }
 
@@ -45,4 +47,5 @@ public class AppConfigResponse {
     public boolean isMaintenanceMode() { return maintenanceMode; }
     public int getMaxSeatsPerBooking() { return maxSeatsPerBooking; }
     public int getInstanceHashCode() { return instanceHashCode; }
+    public String getGoogleMapsApiKey() { return googleMapsApiKey; }
 }

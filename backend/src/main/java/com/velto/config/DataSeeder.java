@@ -37,6 +37,9 @@ public class DataSeeder implements CommandLineRunner {
     private final NotificationRepository notificationRepository;
     private final BookingRepository bookingRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${google.maps.api-key:AIzaSyDhwLHzpMwXxaNkGfgWnjScOeVvMn6LJNs}")
+    private String configuredGoogleMapsApiKey;
+
     public DataSeeder(UserRepository userRepository,
                       UserService userService,
                       RideRepository rideRepository,
@@ -51,7 +54,10 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("Velto DataSeeder: Verifying presence of required demo accounts and rides...");
+        log.info("Velto DataSeeder: Initializing configuration & verifying demo accounts...");
+        if (configuredGoogleMapsApiKey != null && !configuredGoogleMapsApiKey.isBlank()) {
+            com.velto.pattern.singleton.AppConfigSingleton.getInstance().setGoogleMapsApiKey(configuredGoogleMapsApiKey);
+        }
 
         // 1. Ensure Admin Exists
         User admin = userRepository.findByEmail("admin@velto.com").orElseGet(() -> {

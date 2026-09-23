@@ -32,6 +32,7 @@ public class AppConfigSingleton implements Serializable, Cloneable {
     private String currency = "INR";
     private boolean maintenanceMode = false;
     private int maxSeatsPerBooking = 4;
+    private String googleMapsApiKey = "AIzaSyDhwLHzpMwXxaNkGfgWnjScOeVvMn6LJNs";
 
     /**
      * Private constructor to prevent direct instantiation.
@@ -102,6 +103,7 @@ public class AppConfigSingleton implements Serializable, Cloneable {
         this.currency = "INR";
         this.maintenanceMode = false;
         this.maxSeatsPerBooking = 4;
+        this.googleMapsApiKey = "AIzaSyDhwLHzpMwXxaNkGfgWnjScOeVvMn6LJNs";
     }
 
     // Getters and Setters
@@ -175,5 +177,15 @@ public class AppConfigSingleton implements Serializable, Cloneable {
 
     public synchronized void setMaxSeatsPerBooking(int maxSeatsPerBooking) {
         this.maxSeatsPerBooking = maxSeatsPerBooking;
+    }
+
+    public synchronized String getGoogleMapsApiKey() {
+        return googleMapsApiKey;
+    }
+
+    public synchronized void setGoogleMapsApiKey(String googleMapsApiKey) {
+        if (googleMapsApiKey != null && !googleMapsApiKey.isBlank()) {
+            this.googleMapsApiKey = googleMapsApiKey.trim();
+        }
     }
 }

@@ -7,6 +7,14 @@ let allRides = [];
 let currentCalcRide = null;
 let leafletMapInstance = null;
 let trackerLeafletMapInstance = null;
+let googleRouteMapInstance = null;
+let trackerGoogleMapInstance = null;
+let googleTrackerMarker = null;
+let googleTrackerPolyline = null;
+let activeRouteEngine = 'gmaps';
+let activeTrackerEngine = 'gmaps';
+let googleMapsApiKey = 'AIzaSyDhwLHzpMwXxaNkGfgWnjScOeVvMn6LJNs';
+let isGoogleMapsLoaded = false;
 let currentTrackingBooking = null;
 let currentVehicleFilter = 'ALL';
 let currentQRCode = null;
@@ -15,6 +23,7 @@ let trackingCarMarker = null;
 let trackingRouteWaypoints = [];
 let trackingCurrentIndex = 0;
 let trackingCarAnimationTimer = null;
+let googleCarAnimationTimer = null;
 
 // Geographic coordinate dictionary for interactive map demonstration
 const CITY_COORDINATES = {
@@ -51,11 +60,52 @@ const CITY_COORDINATES = {
   'default_dest': [18.5700, 73.8900]
 };
 
+// Load Google Maps JavaScript API dynamically with the configured Demo Key
+async function initGoogleMapsPlatform() {
+  try {
+    const cfg = await API.config.get();
+    if (cfg && cfg.googleMapsApiKey) {
+      googleMapsApiKey = cfg.googleMapsApiKey;
+    }
+  } catch (e) {
+    console.warn('Using default demo Google Maps Platform API key:', e.message);
+  }
+
+  loadGoogleMapsScript();
+}
+
+function loadGoogleMapsScript() {
+  if (window.google && window.google.maps) {
+    isGoogleMapsLoaded = true;
+    return;
+  }
+
+  const existingScript = document.getElementById('google-maps-script');
+  if (existingScript) return;
+
+  const script = document.createElement('script');
+  script.id = 'google-maps-script';
+  // Include places and geometry libraries
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&libraries=places,geometry&callback=onGoogleMapsLoadedCallback`;
+  script.async = true;
+  script.defer = true;
+  window.onGoogleMapsLoadedCallback = () => {
+    isGoogleMapsLoaded = true;
+    console.info('Google Maps Platform JavaScript API loaded successfully.');
+  };
+  script.onerror = (err) => {
+    console.warn('Google Maps failed to load, Leaflet fallback active:', err);
+    isGoogleMapsLoaded = false;
+  };
+  document.head.appendChild(script);
+}
+
 // Initialize on document ready
 document.addEventListener('DOMContentLoaded', () => {
   checkBackendHealth();
   updateAuthUI();
   loadRides();
+  initGoogleMapsPlatform();
 
   // Set default date for ride creation to tomorrow
   const tomorrow = new Date();
@@ -171,51 +221,122 @@ async function quickLogin(email, password) {
   }
 }
 
+// Clear and show in-modal error alerts
+function showAuthError(formType, message) {
+  const alertId = formType === 'login' ? 'login-error-alert' : 'register-error-alert';
+  const alertEl = document.getElementById(alertId);
+  if (alertEl) {
+    alertEl.textContent = message;
+    alertEl.classList.remove('d-none');
+  }
+}
+
+function clearAuthErrors() {
+  const loginAlert = document.getElementById('login-error-alert');
+  const regAlert = document.getElementById('register-error-alert');
+  if (loginAlert) {
+    loginAlert.textContent = '';
+    loginAlert.classList.add('d-none');
+  }
+  if (regAlert) {
+    regAlert.textContent = '';
+    regAlert.classList.add('d-none');
+  }
+}
+
+// Safely close modal and clean up any stuck backdrops
+function closeAuthModal() {
+  const modalEl = document.getElementById('authModal');
+  if (modalEl) {
+    const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalInstance.hide();
+  }
+  // Ensure any hanging backdrop is cleaned up
+  setTimeout(() => {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
+  }, 350);
+}
+
 // Manual Login Form
 async function handleLoginForm(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
+  clearAuthErrors();
+
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  const email = (emailInput?.value || '').trim();
+  const password = passwordInput?.value || '';
+
+  if (!email || !password) {
+    showAuthError('login', 'Please enter both email address and password.');
+    return;
+  }
 
   try {
     const user = await API.auth.login(email, password);
     Auth.setUser(user);
     updateAuthUI();
-    bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+    closeAuthModal();
     showToast(`Welcome back, ${user.name}!`, 'success');
 
     if (user.role === 'ADMIN') showView('admin');
     else if (user.role === 'DRIVER') showView('driver');
     else showView('passenger');
   } catch (err) {
-    showToast(`Login failed: ${err.message}`, 'danger');
+    const msg = err.message || 'Invalid email or password.';
+    showAuthError('login', msg);
+    showToast(`Login failed: ${msg}`, 'danger');
   }
 }
 
 // Manual Registration Form (Factory Method Pattern)
 async function handleRegisterForm(e) {
   e.preventDefault();
-  const req = {
-    name: document.getElementById('reg-name').value,
-    email: document.getElementById('reg-email').value,
-    password: document.getElementById('reg-password').value,
-    phone: document.getElementById('reg-phone').value,
-    role: document.getElementById('reg-role').value
-  };
+  clearAuthErrors();
 
-  if (req.role === 'DRIVER') {
-    req.vehicleNumber = document.getElementById('reg-vehicleNumber').value;
-    req.licenseNumber = document.getElementById('reg-licenseNumber').value;
+  const name = (document.getElementById('reg-name')?.value || '').trim();
+  const email = (document.getElementById('reg-email')?.value || '').trim();
+  const password = document.getElementById('reg-password')?.value || '';
+  const phone = (document.getElementById('reg-phone')?.value || '').trim();
+  const role = document.getElementById('reg-role')?.value || 'PASSENGER';
+
+  if (!name || !email || !password) {
+    showAuthError('register', 'Name, email, and password are required.');
+    return;
+  }
+
+  if (password.length < 6) {
+    showAuthError('register', 'Password must be at least 6 characters long.');
+    return;
+  }
+
+  const req = { name, email, password, phone, role };
+
+  if (role === 'DRIVER') {
+    const vehicleNumber = (document.getElementById('reg-vehicleNumber')?.value || '').trim();
+    const licenseNumber = (document.getElementById('reg-licenseNumber')?.value || '').trim();
+    req.vehicleNumber = vehicleNumber || 'MH-12-VT-9999';
+    req.vehicleType = 'Sedan';
+    req.licenseNumber = licenseNumber || 'DL-PUN-2024-0001';
   }
 
   try {
     const user = await API.auth.register(req);
     Auth.setUser(user);
     updateAuthUI();
-    bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+    closeAuthModal();
     showToast(`Account created via UserFactory! Welcome, ${user.name}`, 'success');
+
+    if (user.role === 'ADMIN') showView('admin');
+    else if (user.role === 'DRIVER') showView('driver');
+    else showView('passenger');
   } catch (err) {
-    showToast(`Registration failed: ${err.message}`, 'danger');
+    const msg = err.message || 'Registration failed. Please check your inputs.';
+    showAuthError('register', msg);
+    showToast(`Registration failed: ${msg}`, 'danger');
   }
 }
 
@@ -227,6 +348,7 @@ function handleLogout() {
 }
 
 function setAuthTab(tab) {
+  clearAuthErrors();
   const loginTab = document.getElementById('tab-login');
   const regTab = document.getElementById('tab-register');
   const formLogin = document.getElementById('form-login');
@@ -512,9 +634,14 @@ async function submitCustomRideBooking(e) {
 }
 
 // ==========================================
-// LEAFLET INTERACTIVE ROUTE MAP
+// INTERACTIVE ROUTE MAP (Google Maps & Leaflet)
 // ==========================================
+let currentModalPickup = '';
+let currentModalDest = '';
+
 function openRouteMap(pickup, dest) {
+  currentModalPickup = pickup;
+  currentModalDest = dest;
   document.getElementById('map-pickup-name').textContent = pickup;
   document.getElementById('map-dest-name').textContent = dest;
 
@@ -522,10 +649,45 @@ function openRouteMap(pickup, dest) {
   const modal = new bootstrap.Modal(modalEl);
   modal.show();
 
-  // Initialize or resize Leaflet after modal is shown
   modalEl.addEventListener('shown.bs.modal', function () {
-    renderLeafletRoute(pickup, dest);
+    renderActiveRouteMap();
   }, { once: true });
+}
+
+function switchRouteMapEngine(engine) {
+  activeRouteEngine = engine;
+  const btnGmaps = document.getElementById('btn-engine-gmaps');
+  const btnLeaflet = document.getElementById('btn-engine-leaflet');
+  const badge = document.getElementById('route-map-engine-badge');
+  const googleMapEl = document.getElementById('google-map');
+  const leafletMapEl = document.getElementById('leaflet-map');
+  const attributionEl = document.getElementById('route-map-attribution');
+
+  if (engine === 'gmaps') {
+    btnGmaps?.classList.add('active');
+    btnLeaflet?.classList.remove('active');
+    if (badge) badge.textContent = 'Google Maps Platform';
+    if (googleMapEl) googleMapEl.style.display = 'block';
+    if (leafletMapEl) leafletMapEl.style.display = 'none';
+    if (attributionEl) attributionEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Powered by Google Maps Platform (Demo Key Enabled) with high precision routing.';
+  } else {
+    btnLeaflet?.classList.add('active');
+    btnGmaps?.classList.remove('active');
+    if (badge) badge.textContent = 'Leaflet.js (Fallback)';
+    if (leafletMapEl) leafletMapEl.style.display = 'block';
+    if (googleMapEl) googleMapEl.style.display = 'none';
+    if (attributionEl) attributionEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> OpenStreetMap data rendered with Leaflet.js (100% offline-ready fallback).';
+  }
+
+  renderActiveRouteMap();
+}
+
+function renderActiveRouteMap() {
+  if (activeRouteEngine === 'gmaps' && window.google && window.google.maps) {
+    renderGoogleRoute(currentModalPickup, currentModalDest);
+  } else {
+    renderLeafletRoute(currentModalPickup, currentModalDest);
+  }
 }
 
 function getCoords(placeName, defaultCoords = [18.5204, 73.8567]) {
@@ -578,6 +740,83 @@ function generateRouteWaypoints(start, end, numPoints = 25) {
     points.push([lat, lng]);
   }
   return points;
+}
+
+// Render route with Google Maps Platform JavaScript API
+function renderGoogleRoute(pickup, dest) {
+  const mapEl = document.getElementById('google-map');
+  if (!mapEl) return;
+
+  const startCoords = getCoords(pickup, CITY_COORDINATES['default_pickup']);
+  const endCoords = getCoords(dest, CITY_COORDINATES['default_dest']);
+  const startLatLng = { lat: startCoords[0], lng: startCoords[1] };
+  const endLatLng = { lat: endCoords[0], lng: endCoords[1] };
+
+  try {
+    googleRouteMapInstance = new google.maps.Map(mapEl, {
+      center: startLatLng,
+      zoom: 12,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
+    });
+
+    // Pickup Marker
+    new google.maps.Marker({
+      position: startLatLng,
+      map: googleRouteMapInstance,
+      title: `Pickup: ${pickup}`,
+      label: { text: 'P', color: '#ffffff', fontWeight: 'bold' },
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: '#10b981',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#ffffff'
+      }
+    });
+
+    // Destination Marker
+    new google.maps.Marker({
+      position: endLatLng,
+      map: googleRouteMapInstance,
+      title: `Destination: ${dest}`,
+      label: { text: 'D', color: '#ffffff', fontWeight: 'bold' },
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#ffffff'
+      }
+    });
+
+    // Connect with styled Google Maps Polyline
+    const routeCoordinates = generateRouteWaypoints(startCoords, endCoords, 25).map(pt => ({
+      lat: pt[0],
+      lng: pt[1]
+    }));
+
+    new google.maps.Polyline({
+      path: routeCoordinates,
+      geodesic: true,
+      strokeColor: '#4f46e5',
+      strokeOpacity: 0.85,
+      strokeWeight: 5,
+      map: googleRouteMapInstance
+    });
+
+    // Fit Bounds
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend(startLatLng);
+    bounds.extend(endLatLng);
+    googleRouteMapInstance.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+  } catch (err) {
+    console.warn('Google Maps rendering encountered an issue, falling back to Leaflet:', err);
+    switchRouteMapEngine('leaflet');
+  }
 }
 
 function renderLeafletRoute(pickup, dest) {
@@ -1279,9 +1518,9 @@ function updateTrackingUI(booking) {
   // Update Stepper
   renderStepperState(status);
 
-  // Render or update embedded Leaflet map with live GPS tracking
+  // Render or update embedded map with live GPS tracking
   setTimeout(() => {
-    renderTrackerLeafletMap(ride.pickup || booking.pickup || 'pune station', ride.destination || booking.destination || 'hinjewadi', status);
+    renderActiveTrackerMap(ride.pickup || booking.pickup || 'pune station', ride.destination || booking.destination || 'hinjewadi', status);
   }, 100);
 }
 
@@ -1367,8 +1606,163 @@ function renderStepperState(currentStatus) {
 }
 
 // ==========================================
-// REAL-TIME GPS TRACKER WITH ANIMATED VEHICLE
+// REAL-TIME GPS TRACKER WITH ANIMATED VEHICLE (Google Maps & Leaflet)
 // ==========================================
+let currentTrackerPickup = 'pune station';
+let currentTrackerDest = 'hinjewadi';
+let currentTrackerStatus = 'REQUESTED';
+
+function switchTrackerMapEngine(engine) {
+  activeTrackerEngine = engine;
+  const btnGmaps = document.getElementById('btn-tracker-engine-gmaps');
+  const btnLeaflet = document.getElementById('btn-tracker-engine-leaflet');
+  const badge = document.getElementById('tracker-engine-badge');
+  const googleEl = document.getElementById('tracker-google-map');
+  const leafletEl = document.getElementById('tracker-leaflet-map');
+
+  if (engine === 'gmaps') {
+    btnGmaps?.classList.add('active');
+    btnLeaflet?.classList.remove('active');
+    if (badge) badge.textContent = 'Google Maps';
+    if (googleEl) googleEl.style.display = 'block';
+    if (leafletEl) leafletEl.style.display = 'none';
+  } else {
+    btnLeaflet?.classList.add('active');
+    btnGmaps?.classList.remove('active');
+    if (badge) badge.textContent = 'Leaflet';
+    if (leafletEl) leafletEl.style.display = 'block';
+    if (googleEl) googleEl.style.display = 'none';
+  }
+
+  renderActiveTrackerMap(currentTrackerPickup, currentTrackerDest, currentTrackerStatus);
+}
+
+function renderActiveTrackerMap(pickup, dest, currentStatus = 'REQUESTED') {
+  currentTrackerPickup = pickup;
+  currentTrackerDest = dest;
+  currentTrackerStatus = currentStatus;
+
+  if (activeTrackerEngine === 'gmaps' && window.google && window.google.maps) {
+    renderTrackerGoogleMap(pickup, dest, currentStatus);
+  } else {
+    renderTrackerLeafletMap(pickup, dest, currentStatus);
+  }
+}
+
+function renderTrackerGoogleMap(pickup, dest, currentStatus = 'REQUESTED') {
+  const mapEl = document.getElementById('tracker-google-map');
+  if (!mapEl) return;
+
+  const startCoords = getCoords(pickup, CITY_COORDINATES['default_pickup']);
+  const endCoords = getCoords(dest, CITY_COORDINATES['default_dest']);
+  const startLatLng = { lat: startCoords[0], lng: startCoords[1] };
+  const endLatLng = { lat: endCoords[0], lng: endCoords[1] };
+
+  if (googleCarAnimationTimer) {
+    clearInterval(googleCarAnimationTimer);
+    googleCarAnimationTimer = null;
+  }
+
+  try {
+    trackerGoogleMapInstance = new google.maps.Map(mapEl, {
+      center: startLatLng,
+      zoom: 13,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
+    });
+
+    // Pickup Pin
+    new google.maps.Marker({
+      position: startLatLng,
+      map: trackerGoogleMapInstance,
+      title: `Pickup: ${pickup}`,
+      label: { text: 'P', color: '#ffffff', fontWeight: 'bold' },
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: '#10b981',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#ffffff'
+      }
+    });
+
+    // Destination Pin
+    new google.maps.Marker({
+      position: endLatLng,
+      map: trackerGoogleMapInstance,
+      title: `Destination: ${dest}`,
+      label: { text: 'D', color: '#ffffff', fontWeight: 'bold' },
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#ffffff'
+      }
+    });
+
+    // Waypoints for vehicle navigation
+    trackingRouteWaypoints = generateRouteWaypoints(startCoords, endCoords, 30);
+    const googleWaypoints = trackingRouteWaypoints.map(pt => ({ lat: pt[0], lng: pt[1] }));
+
+    // Polyline
+    googleTrackerPolyline = new google.maps.Polyline({
+      path: googleWaypoints,
+      geodesic: true,
+      strokeColor: '#4f46e5',
+      strokeOpacity: 0.85,
+      strokeWeight: 6,
+      map: trackerGoogleMapInstance
+    });
+
+    // Car position based on status
+    let initialLatLng = startLatLng;
+    if (currentStatus === 'COMPLETED') {
+      initialLatLng = endLatLng;
+      trackingCurrentIndex = trackingRouteWaypoints.length - 1;
+    } else if (currentStatus === 'IN_PROGRESS') {
+      const halfIdx = Math.floor(trackingRouteWaypoints.length * 0.4);
+      initialLatLng = { lat: trackingRouteWaypoints[halfIdx][0], lng: trackingRouteWaypoints[halfIdx][1] };
+      trackingCurrentIndex = halfIdx;
+    } else {
+      trackingCurrentIndex = 0;
+    }
+
+    // Vehicle Marker (SVG Car icon with pulse style)
+    googleTrackerMarker = new google.maps.Marker({
+      position: initialLatLng,
+      map: trackerGoogleMapInstance,
+      title: 'Velto Vehicle',
+      icon: {
+        path: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-4.66l.12-.34h13.77l.11.34V17z',
+        scale: 1.4,
+        fillColor: '#4f46e5',
+        fillOpacity: 1,
+        strokeWeight: 1,
+        strokeColor: '#ffffff',
+        anchor: new google.maps.Point(12, 12)
+      }
+    });
+
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend(startLatLng);
+    bounds.extend(endLatLng);
+    trackerGoogleMapInstance.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+
+    const totalDist = calculateDistanceKm(startCoords, endCoords);
+    const etaBadge = document.getElementById('tracker-eta-badge');
+    if (etaBadge && currentStatus !== 'COMPLETED') {
+      const estMinutes = Math.max(3, Math.round(totalDist * 2.2));
+      etaBadge.textContent = `ETA: ~${estMinutes} mins (${totalDist} km)`;
+    }
+  } catch (err) {
+    console.warn('Google Maps tracker encountered error, switching to Leaflet:', err);
+    switchTrackerMapEngine('leaflet');
+  }
+}
 
 function renderTrackerLeafletMap(pickup, dest, currentStatus = 'REQUESTED') {
   const mapContainer = document.getElementById('tracker-leaflet-map');
@@ -1478,9 +1872,9 @@ function renderTrackerLeafletMap(pickup, dest, currentStatus = 'REQUESTED') {
   }
 }
 
-// Animate car smoothly between waypoints
+// Animate car smoothly between waypoints across active engines (Google Maps & Leaflet)
 function animateCarAlongWaypoints(startIdx, endIdx, durationMs = 2500, onComplete = null) {
-  if (!trackingCarMarker || !trackingRouteWaypoints.length) {
+  if (!trackingRouteWaypoints.length) {
     if (onComplete) onComplete();
     return;
   }
@@ -1501,7 +1895,16 @@ function animateCarAlongWaypoints(startIdx, endIdx, durationMs = 2500, onComplet
     }
 
     const pt = trackingRouteWaypoints[currentStep];
-    trackingCarMarker.setLatLng(pt);
+
+    // Update Leaflet Car Marker if present
+    if (trackingCarMarker && typeof trackingCarMarker.setLatLng === 'function') {
+      trackingCarMarker.setLatLng(pt);
+    }
+
+    // Update Google Maps Marker if present
+    if (googleTrackerMarker && typeof googleTrackerMarker.setPosition === 'function') {
+      googleTrackerMarker.setPosition({ lat: pt[0], lng: pt[1] });
+    }
 
     // Compute remaining distance & update dynamic ETA
     const finalPt = trackingRouteWaypoints[trackingRouteWaypoints.length - 1];
