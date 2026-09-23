@@ -1,20 +1,25 @@
 package com.velto.pattern.factory;
 
 import com.velto.model.Ride;
-import com.velto.model.RideStatus;
-import com.velto.pattern.builder.RideBuilder;
+import com.velto.pattern.factory.ride.RideCreator;
+import com.velto.pattern.factory.ride.RideCreatorRegistry;
 import org.springframework.stereotype.Component;
 
 /**
  * =========================================================================
  * DESIGN PATTERN 1 — FACTORY METHOD PATTERN (Creational)
  * =========================================================================
- * RideVehicleFactory acts as a specialized Factory Method for creating
- * vehicle-specific Ride configurations (Bike, Auto, Sedan, SUV) with
- * domain-specific seat capacity, pricing rates, and vehicle constraints.
+ * RideVehicleFactory delegates creation to the appropriate GoF RideCreator
+ * subclass (BikeRideCreator, AutoRideCreator, SedanRideCreator, SuvRideCreator).
  */
 @Component
 public class RideVehicleFactory {
+
+    private final RideCreatorRegistry rideCreatorRegistry;
+
+    public RideVehicleFactory(RideCreatorRegistry rideCreatorRegistry) {
+        this.rideCreatorRegistry = rideCreatorRegistry;
+    }
 
     public Ride createVehicleRide(String vehicleType,
                                   String driverId,
@@ -24,50 +29,19 @@ public class RideVehicleFactory {
                                   String date,
                                   String time,
                                   Double customPrice) {
-        String type = (vehicleType != null && !vehicleType.isBlank())
-                ? vehicleType.trim().toUpperCase()
-                : "SEDAN";
+        return createVehicleRide(vehicleType, driverId, driverName, pickup, destination, 10.0, date, time, customPrice);
+    }
 
-        int defaultSeats;
-        double baseFare;
-
-        switch (type) {
-            case "BIKE" -> {
-                defaultSeats = 1;
-                baseFare = 50.0;
-            }
-            case "AUTO" -> {
-                defaultSeats = 3;
-                baseFare = 90.0;
-            }
-            case "SUV" -> {
-                defaultSeats = 6;
-                baseFare = 280.0;
-            }
-            case "SEDAN" -> {
-                defaultSeats = 4;
-                baseFare = 180.0;
-            }
-            default -> {
-                defaultSeats = 4;
-                baseFare = 150.0;
-            }
-        }
-
-        double finalPrice = (customPrice != null && customPrice > 0) ? customPrice : baseFare;
-
-        return new RideBuilder()
-                .driverId(driverId)
-                .driverName(driverName != null ? driverName : "Driver")
-                .pickup(pickup)
-                .destination(destination)
-                .date(date)
-                .time(time)
-                .seats(defaultSeats)
-                .availableSeats(defaultSeats)
-                .vehicleType(type)
-                .price(finalPrice)
-                .status(RideStatus.REQUESTED)
-                .build();
+    public Ride createVehicleRide(String vehicleType,
+                                  String driverId,
+                                  String driverName,
+                                  String pickup,
+                                  String destination,
+                                  double distance,
+                                  String date,
+                                  String time,
+                                  Double customPrice) {
+        RideCreator creator = rideCreatorRegistry.getCreator(vehicleType);
+        return creator.createRide(driverId, driverName, pickup, destination, distance, date, time, customPrice);
     }
 }

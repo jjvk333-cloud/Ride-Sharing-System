@@ -22,6 +22,7 @@ public class BookingBuilder {
     private String passengerName;
     private int seats;
     private double amount;
+    private double distance;
     private PricingType pricingType = PricingType.STANDARD;
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
     private BookingStatus bookingStatus = BookingStatus.PENDING;
@@ -56,6 +57,11 @@ public class BookingBuilder {
 
     public BookingBuilder amount(double amount) {
         this.amount = amount;
+        return this;
+    }
+
+    public BookingBuilder distance(double distance) {
+        this.distance = distance;
         return this;
     }
 
@@ -99,6 +105,7 @@ public class BookingBuilder {
                 this.passengerName != null ? this.passengerName : "Passenger",
                 this.seats,
                 this.amount,
+                this.distance,
                 this.pricingType,
                 this.paymentStatus != null ? this.paymentStatus : PaymentStatus.PAID,
                 this.bookingStatus != null ? this.bookingStatus : BookingStatus.CONFIRMED

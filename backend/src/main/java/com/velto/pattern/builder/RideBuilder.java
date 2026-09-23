@@ -26,6 +26,7 @@ public class RideBuilder {
     private int availableSeats;
     private String vehicleType;
     private double price;
+    private double distance;
     private RideStatus status = RideStatus.REQUESTED;
     private String preferences;
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -87,6 +88,11 @@ public class RideBuilder {
         return this;
     }
 
+    public RideBuilder distance(double distance) {
+        this.distance = distance;
+        return this;
+    }
+
     public RideBuilder status(RideStatus status) {
         this.status = status;
         return this;
@@ -136,6 +142,7 @@ public class RideBuilder {
                 .availableSeats(finalAvailableSeats)
                 .vehicleType(this.vehicleType)
                 .price(this.price)
+                .distance(this.distance)
                 .status(this.status != null ? this.status : RideStatus.REQUESTED)
                 .preferences(this.preferences)
                 .createdAt(this.createdAt != null ? this.createdAt : LocalDateTime.now())

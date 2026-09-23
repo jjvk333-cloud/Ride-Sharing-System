@@ -22,14 +22,13 @@ Every pattern in VELTO solves a concrete software engineering challenge in real-
 ## Pattern 1: Factory Method Pattern
 
 ### 1. Problem
-User registration involves distinct domain entities sharing core credentials (name, email, password, role) but requiring specialized invariants:
-- `Passenger`: Needs preferred payment method and passenger rating.
-- `Driver`: Needs vehicle registration number, license number, and availability flag.
-- `Admin`: Needs platform audit rights and privileged roles.
-Hardcoding constructor logic inside controllers tightly couples the API layer to concrete user implementations.
+Two creational challenges require polymorphic instantiation without coupling callers to concrete classes:
+1. **User Registration**: `Passenger`, `Driver`, and `Admin` have differing attributes, privileges, and validation invariants.
+2. **Vehicle Ride Creation**: Different vehicle tiers (`BIKE`, `AUTO`, `SEDAN`, `SUV`) have distinct seating capacities, mileage multipliers, and pricing dynamics calculated according to distance.
 
 ### 2. Solution & UML
-`UserFactory` defines the creation contract. `UserFactoryImpl` inspects the requested `Role` and instantiates the appropriate concrete subclass (`Passenger`, `Driver`, or `Admin`).
+- **User Creation**: `UserFactory` declares `createUser()`; `UserFactoryImpl` returns the appropriate `Passenger`, `Driver`, or `Admin`.
+- **Ride Creation**: Abstract `RideCreator` declares abstract `createRide(...)`, implemented by `BikeRideCreator`, `AutoRideCreator`, `SedanRideCreator`, and `SuvRideCreator`, managed by `RideCreatorRegistry`.
 
 ```mermaid
 classDiagram
@@ -38,37 +37,38 @@ classDiagram
         -String id
         -String name
         -String email
-        -String password
         -Role role
-        +getRole() Role
     }
-    class Passenger {
-        -String preferredPaymentMethod
-        -double rating
-    }
-    class Driver {
-        -String vehicleNumber
-        -String licenseNumber
-        -boolean available
-    }
-    class Admin {
-        -List~String~ permissions
-    }
+    class Passenger
+    class Driver
+    class Admin
     class UserFactory {
         <<interface>>
-        +createUser(RegisterRequest req) User
+        +createUser(Role role, String name, String email, String password, String phone) User
     }
     class UserFactoryImpl {
-        +createUser(RegisterRequest req) User
+        +createUser(Role role, String name, String email, String password, String phone) User
     }
-
     User <|-- Passenger
     User <|-- Driver
     User <|-- Admin
     UserFactory <|.. UserFactoryImpl
-    UserFactoryImpl ..> Passenger : creates
-    UserFactoryImpl ..> Driver : creates
-    UserFactoryImpl ..> Admin : creates
+
+    class RideCreator {
+        <<abstract>>
+        +createRide(...) Ride
+        +getVehicleType() String
+        +getDefaultSeats() int
+        +getVehicleMultiplier() double
+    }
+    class BikeRideCreator
+    class AutoRideCreator
+    class SedanRideCreator
+    class SuvRideCreator
+    RideCreator <|-- BikeRideCreator
+    RideCreator <|-- AutoRideCreator
+    RideCreator <|-- SedanRideCreator
+    RideCreator <|-- SuvRideCreator
 ```
 
 ---

@@ -372,48 +372,42 @@ function openCustomRideModal(initialPickup = '', initialDest = '') {
   modal.show();
 }
 
-function calculateCustomFareEstimate() {
-  const pickup = document.getElementById('cust-pickup')?.value.trim() || 'pune station';
-  const dest = document.getElementById('cust-destination')?.value.trim() || 'hinjewadi';
+async function calculateCustomFareEstimate() {
+  const pickup = document.getElementById('cust-pickup')?.value.trim() || 'Pune Railway Station';
+  const dest = document.getElementById('cust-destination')?.value.trim() || 'Hinjewadi Phase 1';
   const vType = document.getElementById('cust-vehicleType')?.value || 'Sedan';
   const seats = parseInt(document.getElementById('cust-seats')?.value, 10) || 1;
   const strategy = document.getElementById('cust-strategy')?.value || 'STANDARD';
 
-  const coord1 = getCoords(pickup, CITY_COORDINATES['default_pickup']);
-  const coord2 = getCoords(dest, CITY_COORDINATES['default_dest']);
-  const distKm = calculateDistanceKm(coord1, coord2);
+  try {
+    const estimate = await API.rides.estimateFare(pickup, dest, vType.toUpperCase(), seats, strategy);
+    const distBadge = document.getElementById('cust-est-distance');
+    const fareEl = document.getElementById('cust-est-fare');
+    const stratLabel = document.getElementById('cust-strat-label');
 
-  // Rate multipliers based on vehicle type
-  let baseRatePerKm = 14;
-  let minFare = 60;
-  if (vType === 'Bike') { baseRatePerKm = 7; minFare = 30; }
-  else if (vType === 'Auto') { baseRatePerKm = 10; minFare = 45; }
-  else if (vType === 'SUV') { baseRatePerKm = 20; minFare = 100; }
+    if (distBadge) distBadge.textContent = `${estimate.distanceKm} km (Real Route)`;
+    if (fareEl) fareEl.textContent = `₹${estimate.estimatedFare.toFixed(2)}`;
+    if (stratLabel) stratLabel.textContent = `${estimate.strategyName} • ${estimate.vehicleType}`;
 
-  let baseTripFare = Math.max(minFare, distKm * baseRatePerKm);
-
-  // Multiplier from Strategy Pattern
-  let strategyMultiplier = 1.0;
-  let strategyLabel = 'Standard Rate (1.0x)';
-  if (strategy === 'PEAK') {
-    strategyMultiplier = 1.5;
-    strategyLabel = 'Peak Surge Pricing (1.5x)';
-  } else if (strategy === 'SHARED') {
-    strategyMultiplier = 0.8;
-    strategyLabel = 'Shared Carpooling Discount (0.8x)';
+    return {
+      distKm: estimate.distanceKm,
+      estimatedTotal: estimate.estimatedFare,
+      baseTripFare: estimate.baseRidePrice,
+      pickupCoords: estimate.pickupCoords,
+      destCoords: estimate.destCoords
+    };
+  } catch (err) {
+    // Fallback to client-side formula if backend network blip
+    const coord1 = getCoords(pickup, CITY_COORDINATES['default_pickup']);
+    const coord2 = getCoords(dest, CITY_COORDINATES['default_dest']);
+    const distKm = calculateDistanceKm(coord1, coord2);
+    let baseRate = 12.0;
+    if (vType === 'Bike') baseRate = 8.0;
+    else if (vType === 'Auto') baseRate = 10.0;
+    else if (vType === 'SUV') baseRate = 18.0;
+    const est = Math.round((50.0 + distKm * baseRate) * seats);
+    return { distKm, estimatedTotal: est, baseTripFare: est / seats };
   }
-
-  const estimatedTotal = Math.round(baseTripFare * seats * strategyMultiplier);
-
-  const distBadge = document.getElementById('cust-est-distance');
-  const fareEl = document.getElementById('cust-est-fare');
-  const stratLabel = document.getElementById('cust-strat-label');
-
-  if (distBadge) distBadge.textContent = `Approx. ${distKm} km`;
-  if (fareEl) fareEl.textContent = `₹${estimatedTotal}.00`;
-  if (stratLabel) stratLabel.textContent = `${strategyLabel} • ${vType}`;
-
-  return { distKm, estimatedTotal, baseTripFare };
 }
 
 async function submitCustomRideBooking(e) {
@@ -432,15 +426,16 @@ async function submitCustomRideBooking(e) {
   const vehicleType = document.getElementById('cust-vehicleType').value;
   const seats = parseInt(document.getElementById('cust-seats').value, 10);
   const strategy = document.getElementById('cust-strategy').value;
+  const paymentMethod = document.getElementById('cust-payment-method')?.value || 'MOCK';
 
   const btn = document.getElementById('btn-submit-custom-ride');
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Assigning Driver & Booking...`;
 
   try {
-    const { estimatedTotal } = calculateCustomFareEstimate();
+    const estData = await calculateCustomFareEstimate();
 
-    // 1. Resolve an available active driver or default to verified Rajesh Sharma
+    // 1. Resolve an available active driver or fallback
     let driverId = '66e1f0000000000000000002';
     let driverName = 'Rajesh Kumar';
     try {
@@ -462,7 +457,7 @@ async function submitCustomRideBooking(e) {
     hours = hours ? hours : 12;
     const timeStr = `${hours}:${minutes} ${ampm}`;
 
-    // 2. Construct custom Ride via Builder Pattern
+    // 2. Construct custom Ride via Builder Pattern & authoritative distance
     const ridePayload = {
       driverId: driverId,
       driverName: driverName,
@@ -471,18 +466,20 @@ async function submitCustomRideBooking(e) {
       date: dateStr,
       time: timeStr,
       seats: Math.max(seats + 2, 4),
-      price: Math.max(30, Math.round(estimatedTotal / seats)),
-      vehicleType: vehicleType
+      distance: estData.distKm,
+      price: estData.baseTripFare || Math.round(estData.estimatedTotal / seats),
+      vehicleType: vehicleType.toUpperCase()
     };
 
     const createdRide = await API.rides.create(ridePayload);
 
-    // 3. Immediately book using RideBookingFacade
+    // 3. Immediately book using RideBookingFacade orchestrating Strategy, Adapter, State & Observer
     const bookingPayload = {
       rideId: createdRide.id,
       passengerId: user.id,
       seats: seats,
-      pricingType: strategy
+      pricingType: strategy,
+      paymentMethod: paymentMethod
     };
 
     const bookingRes = await API.bookings.create(bookingPayload);
@@ -498,10 +495,11 @@ async function submitCustomRideBooking(e) {
     bookingRes.destination = destination;
     bookingRes.driverName = driverName;
     bookingRes.vehicleType = vehicleType;
+    bookingRes.distance = estData.distKm;
 
     currentTrackingBooking = bookingRes;
 
-    // Refresh state
+    // Refresh state & switch to live tracking view
     loadRides();
     showView('tracking');
     updateTrackingUI(bookingRes);
@@ -654,19 +652,20 @@ async function proceedToBookFromCalc() {
   if (!currentCalcRide) return;
   const seats = parseInt(document.getElementById('calc-seats').value, 10) || 1;
   const strategy = document.querySelector('input[name="pricingOption"]:checked')?.value || 'STANDARD';
+  const paymentMethod = document.getElementById('calc-payment-method')?.value || 'MOCK';
 
   bootstrap.Modal.getInstance(document.getElementById('priceModal')).hide();
-  executeBooking(currentCalcRide.id, seats, strategy);
+  executeBooking(currentCalcRide.id, seats, strategy, paymentMethod);
 }
 
 function bookRideDirect(rideId) {
-  executeBooking(rideId, 1, 'STANDARD');
+  executeBooking(rideId, 1, 'STANDARD', 'MOCK');
 }
 
 // ==========================================
 // BOOKING (Facade Pattern)
 // ==========================================
-async function executeBooking(rideId, seats, pricingType) {
+async function executeBooking(rideId, seats, pricingType, paymentMethod = 'MOCK') {
   if (!Auth.isLoggedIn()) {
     showToast('Please sign in or use 1-Click Demo Login to book a ride!', 'warning');
     new bootstrap.Modal(document.getElementById('authModal')).show();
@@ -678,12 +677,13 @@ async function executeBooking(rideId, seats, pricingType) {
     rideId: rideId,
     passengerId: user.id,
     seats: seats,
-    pricingType: pricingType
+    pricingType: pricingType,
+    paymentMethod: paymentMethod
   };
 
   try {
     const res = await API.bookings.create(req);
-    showToast(`Ride Booked! Booking ID: ${res.bookingId || res.id}`, 'success');
+    showToast(`Ride Booked & Paid via ${paymentMethod}! Booking ID: ${res.bookingId || res.id}`, 'success');
     loadRides(); // refresh available seats
     showView('passenger');
   } catch (err) {
@@ -1361,6 +1361,9 @@ function renderTrackerLeafletMap(pickup, dest, currentStatus = 'REQUESTED') {
     trackerLeafletMapInstance = null;
     trackingCarMarker = null;
   }
+
+  // Initialize tracker Leaflet map
+  trackerLeafletMapInstance = L.map('tracker-leaflet-map').setView(startCoords, 13);
 
   // Highly reliable CartoDB Voyager map tiles (resolves OpenStreetMap 403 access blocked tile policy error)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {

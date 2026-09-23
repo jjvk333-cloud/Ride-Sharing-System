@@ -22,10 +22,17 @@ public class RideController {
 
     private final RideService rideService;
     private final PricingContext pricingContext;
+    private final com.velto.service.RouteService routeService;
+    private final com.velto.pattern.factory.ride.RideCreatorRegistry rideCreatorRegistry;
 
-    public RideController(RideService rideService, PricingContext pricingContext) {
+    public RideController(RideService rideService,
+                          PricingContext pricingContext,
+                          com.velto.service.RouteService routeService,
+                          com.velto.pattern.factory.ride.RideCreatorRegistry rideCreatorRegistry) {
         this.rideService = rideService;
         this.pricingContext = pricingContext;
+        this.routeService = routeService;
+        this.rideCreatorRegistry = rideCreatorRegistry;
     }
 
     @PostMapping
@@ -92,5 +99,39 @@ public class RideController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/estimate")
+    public ResponseEntity<Map<String, Object>> estimateFare(
+            @RequestParam String pickup,
+            @RequestParam String destination,
+            @RequestParam(defaultValue = "SEDAN") String vehicleType,
+            @RequestParam(defaultValue = "1") int seats,
+            @RequestParam(defaultValue = "STANDARD") PricingType pricingType) {
+
+        double distance = routeService.calculateDistance(pickup, destination);
+        com.velto.pattern.factory.ride.RideCreator creator = rideCreatorRegistry.getCreator(vehicleType);
+        Ride simulatedRide = creator.createRide("ESTIMATE", "Driver", pickup, destination, distance, "TODAY", "NOW", null);
+
+        pricingContext.setStrategyByType(pricingType);
+        double totalFare = pricingContext.calculatePrice(simulatedRide.getPrice(), seats);
+
+        double[] pickupCoords = routeService.getCoordinates(pickup);
+        double[] destCoords = routeService.getCoordinates(destination);
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("pickup", pickup);
+        result.put("destination", destination);
+        result.put("distanceKm", distance);
+        result.put("vehicleType", creator.getVehicleType());
+        result.put("seats", seats);
+        result.put("pricingType", pricingType);
+        result.put("strategyName", pricingContext.getStrategy().getStrategyName());
+        result.put("baseRidePrice", simulatedRide.getPrice());
+        result.put("estimatedFare", totalFare);
+        result.put("pickupCoords", pickupCoords);
+        result.put("destCoords", destCoords);
+
+        return ResponseEntity.ok(result);
     }
 }

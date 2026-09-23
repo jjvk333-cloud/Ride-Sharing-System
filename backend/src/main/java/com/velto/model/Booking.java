@@ -16,6 +16,7 @@ public class Booking {
     private String passengerName;
     private int seats;
     private double amount;
+    private double distance;
     private PricingType pricingType;
     private PaymentStatus paymentStatus;
     private BookingStatus bookingStatus;
@@ -33,6 +34,20 @@ public class Booking {
         this.passengerName = passengerName;
         this.seats = seats;
         this.amount = amount;
+        this.distance = 0.0;
+        this.pricingType = pricingType != null ? pricingType : PricingType.STANDARD;
+        this.paymentStatus = paymentStatus != null ? paymentStatus : PaymentStatus.PAID;
+        this.bookingStatus = bookingStatus != null ? bookingStatus : BookingStatus.CONFIRMED;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Booking(String rideId, String passengerId, String passengerName, int seats, double amount, double distance, PricingType pricingType, PaymentStatus paymentStatus, BookingStatus bookingStatus) {
+        this.rideId = rideId;
+        this.passengerId = passengerId;
+        this.passengerName = passengerName;
+        this.seats = seats;
+        this.amount = amount;
+        this.distance = distance;
         this.pricingType = pricingType != null ? pricingType : PricingType.STANDARD;
         this.paymentStatus = paymentStatus != null ? paymentStatus : PaymentStatus.PAID;
         this.bookingStatus = bookingStatus != null ? bookingStatus : BookingStatus.CONFIRMED;
@@ -85,6 +100,14 @@ public class Booking {
 
     public void setAmount(double amount) {
         this.amount = amount;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
     }
 
     public PricingType getPricingType() {

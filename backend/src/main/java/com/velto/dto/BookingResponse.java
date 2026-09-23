@@ -18,6 +18,7 @@ public class BookingResponse {
     private String time;
     private int seatsBooked;
     private double amountPaid;
+    private double distance;
     private PricingType pricingType;
     private PaymentStatus paymentStatus;
     private BookingStatus bookingStatus;
@@ -28,6 +29,10 @@ public class BookingResponse {
     }
 
     public BookingResponse(String bookingId, String rideId, String passengerId, String passengerName, String pickup, String destination, String date, String time, int seatsBooked, double amountPaid, PricingType pricingType, PaymentStatus paymentStatus, BookingStatus bookingStatus, LocalDateTime createdAt, String message) {
+        this(bookingId, rideId, passengerId, passengerName, pickup, destination, date, time, seatsBooked, amountPaid, 0.0, pricingType, paymentStatus, bookingStatus, createdAt, message);
+    }
+
+    public BookingResponse(String bookingId, String rideId, String passengerId, String passengerName, String pickup, String destination, String date, String time, int seatsBooked, double amountPaid, double distance, PricingType pricingType, PaymentStatus paymentStatus, BookingStatus bookingStatus, LocalDateTime createdAt, String message) {
         this.bookingId = bookingId;
         this.rideId = rideId;
         this.passengerId = passengerId;
@@ -38,6 +43,7 @@ public class BookingResponse {
         this.time = time;
         this.seatsBooked = seatsBooked;
         this.amountPaid = amountPaid;
+        this.distance = distance;
         this.pricingType = pricingType;
         this.paymentStatus = paymentStatus;
         this.bookingStatus = bookingStatus;
@@ -123,6 +129,14 @@ public class BookingResponse {
 
     public void setAmountPaid(double amountPaid) {
         this.amountPaid = amountPaid;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
     }
 
     public PricingType getPricingType() {

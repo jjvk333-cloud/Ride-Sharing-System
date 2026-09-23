@@ -141,6 +141,7 @@ public class RideBookingFacade {
                 .passengerName(passenger.getName())
                 .seats(request.getSeats())
                 .amount(totalAmount)
+                .distance(ride.getDistance())
                 .pricingType(request.getPricingType())
                 .paymentStatus(PaymentStatus.PAID)
                 .bookingStatus(BookingStatus.CONFIRMED)
@@ -167,8 +168,8 @@ public class RideBookingFacade {
         try {
             Notification passNotif = new Notification(
                     passenger.getId(),
-                    String.format("Booking Confirmed: Your ride from '%s' to '%s' is confirmed. Fare: ₹%.2f (%s)",
-                            ride.getPickup(), ride.getDestination(), totalAmount, method),
+                    String.format("Booking Confirmed: Your ride from '%s' to '%s' (%.1f km) is confirmed. Fare: ₹%.2f (%s)",
+                            ride.getPickup(), ride.getDestination(), ride.getDistance(), totalAmount, method),
                     "BOOKING_CONFIRMED"
             );
             notificationRepository.save(passNotif);
@@ -176,8 +177,8 @@ public class RideBookingFacade {
             if (ride.getDriverId() != null) {
                 Notification driverNotif = new Notification(
                         ride.getDriverId(),
-                        String.format("New Passenger Booked: %s booked %d seat(s) on your ride to %s.",
-                                passenger.getName(), request.getSeats(), ride.getDestination()),
+                        String.format("New Passenger Booked: %s booked %d seat(s) on your ride to %s (%.1f km).",
+                                passenger.getName(), request.getSeats(), ride.getDestination(), ride.getDistance()),
                         "RIDE_BOOKING_UPDATE"
                 );
                 notificationRepository.save(driverNotif);
@@ -198,6 +199,7 @@ public class RideBookingFacade {
                 ride.getTime(),
                 savedBooking.getSeats(),
                 savedBooking.getAmount(),
+                ride.getDistance(),
                 savedBooking.getPricingType(),
                 savedBooking.getPaymentStatus(),
                 savedBooking.getBookingStatus(),
@@ -270,6 +272,7 @@ public class RideBookingFacade {
         String destination = (ride != null) ? ride.getDestination() : "Destination";
         String date = (ride != null) ? ride.getDate() : "";
         String time = (ride != null) ? ride.getTime() : "";
+        double distance = (ride != null && ride.getDistance() > 0) ? ride.getDistance() : booking.getDistance();
 
         return new BookingResponse(
                 booking.getId(),
@@ -282,6 +285,7 @@ public class RideBookingFacade {
                 time,
                 booking.getSeats(),
                 booking.getAmount(),
+                distance,
                 booking.getPricingType(),
                 booking.getPaymentStatus(),
                 booking.getBookingStatus(),

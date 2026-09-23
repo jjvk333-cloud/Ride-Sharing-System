@@ -18,14 +18,22 @@ public class RideServiceImpl implements RideService {
 
     private final RideRepository rideRepository;
     private final RideEventSubject rideEventSubject;
+    private final RouteService routeService;
 
-    public RideServiceImpl(RideRepository rideRepository, RideEventSubject rideEventSubject) {
+    public RideServiceImpl(RideRepository rideRepository,
+                           RideEventSubject rideEventSubject,
+                           RouteService routeService) {
         this.rideRepository = rideRepository;
         this.rideEventSubject = rideEventSubject;
+        this.routeService = routeService;
     }
 
     @Override
     public Ride createRide(CreateRideRequest request) {
+        double dist = request.getDistance() > 0 
+                ? request.getDistance() 
+                : routeService.calculateDistance(request.getPickup(), request.getDestination());
+
         // Employ GoF Builder Pattern (com.velto.pattern.builder.RideBuilder)
         Ride ride = new RideBuilder()
                 .driverId(request.getDriverId())
@@ -38,6 +46,7 @@ public class RideServiceImpl implements RideService {
                 .availableSeats(request.getSeats())
                 .vehicleType(request.getVehicleType())
                 .price(request.getPrice())
+                .distance(dist)
                 .preferences(request.getPreferences())
                 .status(RideStatus.REQUESTED)
                 .build();

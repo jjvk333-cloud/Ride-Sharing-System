@@ -74,7 +74,18 @@ const API = {
     }),
     // Strategy Pattern endpoint
     calculatePrice: (rideId, seats, pricingType = 'STANDARD') => 
-      API.request(`/rides/${rideId}/calculate-price?seats=${seats}&pricingType=${pricingType}`)
+      API.request(`/rides/${rideId}/calculate-price?seats=${seats}&pricingType=${pricingType}`),
+    // Dynamic Route & Fare Estimation endpoint
+    estimateFare: (pickup, destination, vehicleType = 'SEDAN', seats = 1, pricingType = 'STANDARD') => {
+      const params = new URLSearchParams({
+        pickup,
+        destination,
+        vehicleType,
+        seats,
+        pricingType
+      });
+      return API.request(`/rides/estimate?${params.toString()}`);
+    }
   },
 
   // Bookings (Facade Pattern)

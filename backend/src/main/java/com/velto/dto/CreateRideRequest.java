@@ -29,6 +29,8 @@ public class CreateRideRequest {
     @Min(value = 0, message = "Price cannot be negative")
     private double price;
 
+    private double distance;
+
     private String preferences;
 
     public CreateRideRequest() {
@@ -44,6 +46,20 @@ public class CreateRideRequest {
         this.seats = seats;
         this.vehicleType = vehicleType;
         this.price = price;
+        this.preferences = preferences;
+    }
+
+    public CreateRideRequest(String driverId, String driverName, String pickup, String destination, String date, String time, int seats, String vehicleType, double price, double distance, String preferences) {
+        this.driverId = driverId;
+        this.driverName = driverName;
+        this.pickup = pickup;
+        this.destination = destination;
+        this.date = date;
+        this.time = time;
+        this.seats = seats;
+        this.vehicleType = vehicleType;
+        this.price = price;
+        this.distance = distance;
         this.preferences = preferences;
     }
 
@@ -117,6 +133,14 @@ public class CreateRideRequest {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
     }
 
     public String getPreferences() {

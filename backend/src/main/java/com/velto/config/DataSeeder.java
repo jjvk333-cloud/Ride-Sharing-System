@@ -111,6 +111,7 @@ public class DataSeeder implements CommandLineRunner {
                     .seats(4)
                     .vehicleType("SEDAN")
                     .price(250.0)
+                    .distance(18.5)
                     .status(RideStatus.CONFIRMED)
                     .build();
             rideRepository.save(ride1);
@@ -126,6 +127,7 @@ public class DataSeeder implements CommandLineRunner {
                     .seats(3)
                     .vehicleType("AUTO")
                     .price(180.0)
+                    .distance(15.2)
                     .status(RideStatus.CONFIRMED)
                     .build();
             rideRepository.save(ride2);
@@ -141,10 +143,11 @@ public class DataSeeder implements CommandLineRunner {
                     .seats(6)
                     .vehicleType("SUV")
                     .price(320.0)
+                    .distance(22.8)
                     .status(RideStatus.CONFIRMED)
                     .build();
             rideRepository.save(ride3);
-            log.info("Seeded 3 demo rides successfully with vehicle types (SEDAN, AUTO, SUV).");
+            log.info("Seeded 3 demo rides successfully with vehicle types (SEDAN, AUTO, SUV) and realistic distances.");
 
             // Seed demo booking for Priya on ride1
             Booking demoBooking = new Booking(
